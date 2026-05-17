@@ -184,8 +184,19 @@ function EventsTab({ events }) {
   const [expandedId, setExpandedId] = useState(null);
   const [slideIndexes, setSlideIndexes] = useState({});
   const [pastEventsExpanded, setPastEventsExpanded] = useState(false);
+  const scrollRefs = useRef({});
 
-  const setSlide = (eventId, idx) => setSlideIndexes((prev) => ({ ...prev, [eventId]: idx }));
+  const setSlide = (eventId, idx) => {
+    setSlideIndexes((prev) => ({ ...prev, [eventId]: idx }));
+    // Scroll to the selected image
+    if (scrollRefs.current[eventId]) {
+      const slideWidth = SCREEN_WIDTH - 64;
+      scrollRefs.current[eventId].scrollTo({
+        x: idx * slideWidth,
+        animated: true,
+      });
+    }
+  };
 
   const addToCalendar = (ev) => {
     const start = new Date(ev.event_date);
@@ -281,51 +292,120 @@ function EventsTab({ events }) {
                     overflow: 'hidden',
                     backgroundColor: '#f3f4f6',
                     aspectRatio: 1,
+                    position: 'relative',
                   }}
                 >
                   <ScrollView
+                    ref={(ref) => {
+                      if (ref) scrollRefs.current[ev.id] = ref;
+                    }}
                     horizontal
                     pagingEnabled
+                    scrollEventThrottle={16}
                     showsHorizontalScrollIndicator={false}
                     onMomentumScrollEnd={(e) => {
                       const idx = Math.round(e.nativeEvent.contentOffset.x / slideWidth);
-                      setSlide(ev.id, idx);
+                      setSlideIndexes((prev) => ({ ...prev, [ev.id]: idx }));
                     }}
                     style={{ width: slideWidth }}
                   >
                     <View style={{ flexDirection: 'row' }}>
                       {imgs.map((url, i) => (
-                        <Image
+                        <View
                           key={i}
-                          source={{ uri: url }}
-                          style={{ width: slideWidth, aspectRatio: 1 }}
-                          resizeMode="contain"
-                        />
+                          style={{
+                            width: slideWidth,
+                            aspectRatio: 1,
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            backgroundColor: '#f3f4f6',
+                          }}
+                        >
+                          <Image
+                            source={{ uri: url }}
+                            style={{
+                              width: slideWidth,
+                              height: slideWidth,
+                            }}
+                            resizeMode="contain"
+                          />
+                        </View>
                       ))}
                     </View>
                   </ScrollView>
 
+                  {/* Left arrow button (PC) */}
+                  {imgs.length > 1 && currentSlide > 0 ? (
+                    <TouchableOpacity
+                      onPress={() => setSlide(ev.id, currentSlide - 1)}
+                      style={{
+                        position: 'absolute',
+                        left: 12,
+                        top: '50%',
+                        transform: [{ translateY: -20 }],
+                        zIndex: 10,
+                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                        borderRadius: 20,
+                        width: 40,
+                        height: 40,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <Text style={{ color: 'white', fontSize: 20, fontWeight: 'bold' }}>‹</Text>
+                    </TouchableOpacity>
+                  ) : null}
+
+                  {/* Right arrow button (PC) */}
+                  {imgs.length > 1 && currentSlide < imgs.length - 1 ? (
+                    <TouchableOpacity
+                      onPress={() => setSlide(ev.id, currentSlide + 1)}
+                      style={{
+                        position: 'absolute',
+                        right: 12,
+                        top: '50%',
+                        transform: [{ translateY: -20 }],
+                        zIndex: 10,
+                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                        borderRadius: 20,
+                        width: 40,
+                        height: 40,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <Text style={{ color: 'white', fontSize: 20, fontWeight: 'bold' }}>›</Text>
+                    </TouchableOpacity>
+                  ) : null}
+
+                  {/* Pagination dots */}
                   {imgs.length > 1 ? (
                     <View
                       style={{
                         position: 'absolute',
-                        bottom: 8,
+                        bottom: 12,
                         left: 0,
                         right: 0,
                         flexDirection: 'row',
                         justifyContent: 'center',
-                        gap: 6,
+                        gap: 8,
                       }}
                     >
                       {imgs.map((_, i) => (
-                        <TouchableOpacity key={i} onPress={() => setSlide(ev.id, i)}>
+                        <TouchableOpacity
+                          key={i}
+                          onPress={() => setSlide(ev.id, i)}
+                          activeOpacity={0.7}
+                        >
                           <View
                             style={{
-                              width: i === currentSlide ? 8 : 6,
-                              height: i === currentSlide ? 8 : 6,
+                              width: i === currentSlide ? 10 : 6,
+                              height: i === currentSlide ? 10 : 6,
                               borderRadius: 999,
                               backgroundColor:
-                                i === currentSlide ? 'white' : 'rgba(255,255,255,0.5)',
+                                i === currentSlide ? '#f97316' : 'rgba(255,255,255,0.6)',
+                              borderWidth: i === currentSlide ? 0 : 1,
+                              borderColor: 'rgba(255,255,255,0.8)',
                             }}
                           />
                         </TouchableOpacity>
