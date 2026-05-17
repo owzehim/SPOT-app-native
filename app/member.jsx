@@ -1,8 +1,5 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
-import {
-  View, Text, ScrollView, TouchableOpacity,
-  Image, Linking, Platform, Dimensions
-} from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, Linking, Platform, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { QrCode, Calendar, MapPin } from 'phosphor-react-native';
 import QRCode from 'react-native-qrcode-svg';
@@ -38,12 +35,14 @@ export default function MemberPage() {
         .from('events').select('*').order('event_date', { ascending: true });
       const { data: restaurantData } = await supabase
         .from('restaurants').select('*').order('created_at', { ascending: false });
+
       setMember(memberData);
       setIsAdmin(!!adminData);
       setEvents(eventData || []);
       setRestaurants(restaurantData || []);
       setLoading(false);
     };
+
     fetchData();
   }, []);
 
@@ -55,35 +54,21 @@ export default function MemberPage() {
     );
   }
 
-  const qrValue = token
-    ? 'https://uvain-app.vercel.app/verify/' + token + '_' + member?.student_number
-    : '';
-  const isValid = member?.is_member &&
-    member?.membership_valid_until &&
-    new Date(member.membership_valid_until) >= new Date();
+  const qrValue = token ? 'https://uvain-app.vercel.app/verify/' + token + '_' + member?.student_number : '';
+  const isValid = member?.is_member && member?.membership_valid_until && new Date(member.membership_valid_until) >= new Date();
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f9fafb' }}>
       {/* Header */}
-      <View style={{
-        backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#f3f4f6',
-        paddingHorizontal: 16, paddingVertical: 12,
-        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'
-      }}>
+      <View style={{ backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#f3f4f6', paddingHorizontal: 16, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <Text style={{ fontWeight: 'bold', color: '#111827', fontSize: 16 }}>SPOT</Text>
         <View style={{ flexDirection: 'row', gap: 8 }}>
           {isAdmin && (
-            <TouchableOpacity
-              onPress={() => router.push('/admin')}
-              style={{ backgroundColor: '#2563eb', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 8 }}
-            >
+            <TouchableOpacity onPress={() => router.push('/admin')} style={{ backgroundColor: '#2563eb', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 8 }}>
               <Text style={{ color: 'white', fontSize: 13, fontWeight: '500' }}>관리자</Text>
             </TouchableOpacity>
           )}
-          <TouchableOpacity
-            onPress={() => supabase.auth.signOut()}
-            style={{ paddingHorizontal: 12, paddingVertical: 4, borderRadius: 8, backgroundColor: '#f3f4f6' }}
-          >
+          <TouchableOpacity onPress={() => supabase.auth.signOut()} style={{ paddingHorizontal: 12, paddingVertical: 4, borderRadius: 8, backgroundColor: '#f3f4f6' }}>
             <Text style={{ color: '#6b7280', fontSize: 13 }}>로그아웃</Text>
           </TouchableOpacity>
         </View>
@@ -99,22 +84,14 @@ export default function MemberPage() {
       </View>
 
       {/* Bottom Tab Bar */}
-      <View style={{
-        backgroundColor: 'white', borderTopWidth: 1, borderTopColor: '#f3f4f6',
-        flexDirection: 'row'
-      }}>
+      <View style={{ backgroundColor: 'white', borderTopWidth: 1, borderTopColor: '#f3f4f6', flexDirection: 'row' }}>
         {[
           { key: 'qr', label: 'MY', Icon: QrCode },
           { key: 'events', label: 'EVENTS', Icon: Calendar },
           { key: 'map', label: 'SPOT', Icon: MapPin },
         ].map(({ key, label, Icon }) => (
-          <TouchableOpacity
-            key={key}
-            onPress={() => setActiveTab(key)}
-            style={{ flex: 1, paddingVertical: 12, alignItems: 'center', gap: 2 }}
-          >
-            <Icon size={20} weight={activeTab === key ? 'fill' : 'regular'}
-              color={activeTab === key ? '#f97316' : '#9ca3af'} />
+          <TouchableOpacity key={key} onPress={() => setActiveTab(key)} style={{ flex: 1, paddingVertical: 12, alignItems: 'center', gap: 2 }}>
+            <Icon size={20} weight={activeTab === key ? 'fill' : 'regular'} color={activeTab === key ? '#f97316' : '#9ca3af'} />
             <Text style={{ fontSize: 11, fontWeight: '500', color: activeTab === key ? '#f97316' : '#9ca3af' }}>
               {label}
             </Text>
@@ -125,7 +102,7 @@ export default function MemberPage() {
   );
 }
 
-// ─── QR Tab ──────────────────────────────────────────────────────────────────
+// ─── QR Tab ────────────────────────────────────────────────────────────────── 
 function QRTab({ member, isValid, qrValue, secondsLeft }) {
   const router = useRouter();
 
@@ -146,10 +123,7 @@ function QRTab({ member, isValid, qrValue, secondsLeft }) {
           <Text style={{ fontWeight: '600', color: '#111827', fontSize: 15 }}>
             {member?.first_name} {member?.last_name}
           </Text>
-          <View style={{
-            paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999,
-            backgroundColor: isValid ? '#dcfce7' : '#fee2e2'
-          }}>
+          <View style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, backgroundColor: isValid ? '#dcfce7' : '#fee2e2' }}>
             <Text style={{ fontSize: 12, fontWeight: '500', color: isValid ? '#15803d' : '#dc2626' }}>
               {isValid ? '✓ 유효' : '✗ 만료'}
             </Text>
@@ -187,10 +161,7 @@ function QRTab({ member, isValid, qrValue, secondsLeft }) {
 
       {/* Scan button */}
       {isValid && (
-        <TouchableOpacity
-          onPress={() => router.push('/scan')}
-          style={{ backgroundColor: '#f97316', borderRadius: 16, paddingVertical: 14, alignItems: 'center' }}
-        >
+        <TouchableOpacity onPress={() => router.push('/scan')} style={{ backgroundColor: '#f97316', borderRadius: 16, paddingVertical: 14, alignItems: 'center' }}>
           <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>🎟 매장 QR 스캔하기</Text>
         </TouchableOpacity>
       )}
@@ -198,28 +169,20 @@ function QRTab({ member, isValid, qrValue, secondsLeft }) {
   );
 }
 
-// ─── Events Tab ───────────────────────────────────────────────────────────────
+// ─── Events Tab ─────────────────────────────────────────────────────────────── 
 function EventsTab({ events }) {
   const [expandedId, setExpandedId] = useState(null);
   const [slideIndexes, setSlideIndexes] = useState({});
   const [pastEventsExpanded, setPastEventsExpanded] = useState(false);
 
-  const setSlide = (eventId, idx) =>
-    setSlideIndexes((prev) => ({ ...prev, [eventId]: idx }));
+  const setSlide = (eventId, idx) => setSlideIndexes((prev) => ({ ...prev, [eventId]: idx }));
 
   const addToCalendar = (ev) => {
     const start = new Date(ev.event_date);
     const end = new Date(start.getTime() + 2 * 60 * 60 * 1000);
     const pad = (n) => String(n).padStart(2, '0');
-    const fmt = (d) =>
-      d.getUTCFullYear() + '' + pad(d.getUTCMonth() + 1) + '' + pad(d.getUTCDate()) +
-      'T' + pad(d.getUTCHours()) + '' + pad(d.getUTCMinutes()) + '00Z';
-    const ics =
-      'BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nDTSTART:' + fmt(start) +
-      '\nDTEND:' + fmt(end) + '\nSUMMARY:' + ev.title +
-      '\nLOCATION:' + (ev.location || '') +
-      '\nDESCRIPTION:' + (ev.description || '') +
-      '\nEND:VEVENT\nEND:VCALENDAR';
+    const fmt = (d) => d.getUTCFullYear() + '' + pad(d.getUTCMonth() + 1) + '' + pad(d.getUTCDate()) + 'T' + pad(d.getUTCHours()) + '' + pad(d.getUTCMinutes()) + '00Z';
+    const ics = 'BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nDTSTART:' + fmt(start) + '\nDTEND:' + fmt(end) + '\nSUMMARY:' + ev.title + '\nLOCATION:' + (ev.location || '') + '\nDESCRIPTION:' + (ev.description || '') + '\nEND:VEVENT\nEND:VCALENDAR';
     const encoded = encodeURIComponent(ics);
     Linking.openURL('data:text/calendar,' + encoded);
   };
@@ -241,10 +204,7 @@ function EventsTab({ events }) {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
               <Calendar size={14} weight="fill" color="#f97316" />
               <Text style={{ fontSize: 13, color: '#f97316' }}>
-                {new Date(ev.event_date).toLocaleString('ko-KR', {
-                  year: 'numeric', month: 'long', day: 'numeric',
-                  hour: '2-digit', minute: '2-digit', hour12: true
-                })}
+                {new Date(ev.event_date).toLocaleString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
               </Text>
             </View>
           )}
@@ -255,24 +215,14 @@ function EventsTab({ events }) {
             </View>
           )}
         </TouchableOpacity>
-
         {isExpanded && (
           <View>
             {imgs.length > 0 && (
               <View style={{ paddingHorizontal: 16, marginBottom: 12 }}>
                 <View style={{ borderRadius: 16, overflow: 'hidden', backgroundColor: '#f3f4f6', aspectRatio: 1 }}>
-                  <ScrollView
-                    horizontal pagingEnabled showsHorizontalScrollIndicator={false}
-                    onMomentumScrollEnd={(e) => {
-                      const idx = Math.round(e.nativeEvent.contentOffset.x / slideWidth);
-                      setSlide(ev.id, idx);
-                    }}
-                    style={{ width: slideWidth }}
-                  >
+                  <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} onMomentumScrollEnd={(e) => { const idx = Math.round(e.nativeEvent.contentOffset.x / slideWidth); setSlide(ev.id, idx); }} style={{ width: slideWidth }}>
                     {imgs.map((url, i) => (
-                      <Image key={i} source={{ uri: url }}
-                        style={{ width: slideWidth, aspectRatio: 1 }}
-                        resizeMode="contain" />
+                      <Image key={i} source={{ uri: url }} style={{ width: slideWidth, aspectRatio: 1 }} resizeMode="contain" />
                     ))}
                   </ScrollView>
                   {imgs.length > 1 && (
@@ -293,19 +243,13 @@ function EventsTab({ events }) {
               )}
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 {ev.event_date && (
-                  <TouchableOpacity
-                    onPress={() => addToCalendar(ev)}
-                    style={{ flex: 1, backgroundColor: '#f3f4f6', borderRadius: 8, paddingVertical: 8, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 6 }}
-                  >
+                  <TouchableOpacity onPress={() => addToCalendar(ev)} style={{ flex: 1, backgroundColor: '#f3f4f6', borderRadius: 8, paddingVertical: 8, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 6 }}>
                     <Calendar size={14} weight="fill" color="#374151" />
                     <Text style={{ fontSize: 12, color: '#374151' }}>캘린더에 추가</Text>
                   </TouchableOpacity>
                 )}
                 {ev.instagram_url && (
-                  <TouchableOpacity
-                    onPress={() => Linking.openURL(ev.instagram_url)}
-                    style={{ flex: 1, backgroundColor: '#f97316', borderRadius: 8, paddingVertical: 8, alignItems: 'center', justifyContent: 'center' }}
-                  >
+                  <TouchableOpacity onPress={() => Linking.openURL(ev.instagram_url)} style={{ flex: 1, backgroundColor: '#f97316', borderRadius: 8, paddingVertical: 8, alignItems: 'center', justifyContent: 'center' }}>
                     <Text style={{ fontSize: 12, color: 'white' }}>Instagram 에서 열기</Text>
                   </TouchableOpacity>
                 )}
@@ -321,6 +265,31 @@ function EventsTab({ events }) {
   const upcomingEvents = events.filter((ev) => ev.event_date && new Date(ev.event_date) >= now);
   const pastEvents = events.filter((ev) => ev.event_date && new Date(ev.event_date) < now);
 
+  // Helper function to group events by month
+  const groupEventsByMonth = (eventList) => {
+    const grouped = {};
+    eventList.forEach((ev) => {
+      const label = ev.event_date ? `${new Date(ev.event_date).getMonth() + 1}월` : '날짜 미정';
+      if (!grouped[label]) {
+        grouped[label] = [];
+      }
+      grouped[label].push(ev);
+    });
+    return grouped;
+  };
+
+  const renderEventsByMonth = (eventList) => {
+    const grouped = groupEventsByMonth(eventList);
+    return Object.entries(grouped).map(([month, monthEvents]) => (
+      <View key={month}>
+        <Text style={{ fontSize: 12, fontWeight: '600', color: '#9ca3af', textTransform: 'uppercase', paddingTop: 8, marginBottom: 8 }}>
+          {month}
+        </Text>
+        {monthEvents.map((ev) => renderEvent(ev))}
+      </View>
+    ));
+  };
+
   return (
     <ScrollView contentContainerStyle={{ padding: 16, maxWidth: 448, alignSelf: 'center', width: '100%' }}>
       <Text style={{ fontWeight: '600', color: '#111827', fontSize: 15, marginBottom: 16 }}>EVENTS</Text>
@@ -333,28 +302,12 @@ function EventsTab({ events }) {
         <View>
           {upcomingEvents.length > 0 && (
             <View>
-              {(() => {
-                let currentMonth = null;
-                return upcomingEvents.map((ev) => {
-                  const label = ev.event_date ? `${new Date(ev.event_date).getMonth() + 1}월` : '날짜 미정';
-                  const showLabel = label !== currentMonth;
-                  currentMonth = label;
-                  return (
-                    <View key={ev.id}>
-                      {showLabel && <Text style={{ fontSize: 12, fontWeight: '600', color: '#9ca3af', textTransform: 'uppercase', paddingTop: 8, marginBottom: 8 }}>{label}</Text>}
-                      {renderEvent(ev)}
-                    </View>
-                  );
-                });
-              })()}
+              {renderEventsByMonth(upcomingEvents)}
             </View>
           )}
           {pastEvents.length > 0 && (
             <View style={{ marginTop: 24 }}>
-              <TouchableOpacity
-                onPress={() => setPastEventsExpanded(!pastEventsExpanded)}
-                style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderRadius: 8 }}
-              >
+              <TouchableOpacity onPress={() => setPastEventsExpanded(!pastEventsExpanded)} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderRadius: 8 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <Text style={{ fontWeight: '600', color: '#4b5563' }}>지난 이벤트</Text>
                   <View style={{ backgroundColor: '#e5e7eb', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 }}>
@@ -365,20 +318,7 @@ function EventsTab({ events }) {
               </TouchableOpacity>
               {pastEventsExpanded && (
                 <View style={{ marginTop: 12 }}>
-                  {(() => {
-                    let currentMonth = null;
-                    return pastEvents.map((ev) => {
-                      const label = ev.event_date ? `${new Date(ev.event_date).getMonth() + 1}월` : '날짜 미정';
-                      const showLabel = label !== currentMonth;
-                      currentMonth = label;
-                      return (
-                        <View key={ev.id}>
-                          {showLabel && <Text style={{ fontSize: 12, fontWeight: '600', color: '#9ca3af', textTransform: 'uppercase', paddingTop: 8, marginBottom: 8 }}>{label}</Text>}
-                          {renderEvent(ev)}
-                        </View>
-                      );
-                    });
-                  })()}
+                  {renderEventsByMonth(pastEvents)}
                 </View>
               )}
             </View>
@@ -389,7 +329,7 @@ function EventsTab({ events }) {
   );
 }
 
-// ─── Map Tab ─────────────────────────────────────────────────────────
+// ─── Map Tab ───────────────────────────────────────────────────────── 
 function MapTab({ restaurants }) {
   const [selected, setSelected] = useState(null);
   const [activeCategory, setActiveCategory] = useState('전체');
