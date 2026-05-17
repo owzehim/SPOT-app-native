@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "SPOT",
+    "slug": "spot-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "spot",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.owzehim.spotapp"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.owzehim.spotapp"
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow SPOT to access your camera for QR scanning."
+        }
+      ],
+      "expo-font",
+      "@maplibre/maplibre-react-native"
+    ]
+  }
+}

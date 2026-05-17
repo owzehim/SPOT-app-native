@@ -1,0 +1,339 @@
+import { useEffect, useRef } from 'react'
+import { View, TouchableOpacity, Text, ScrollView, Platform } from 'react-native'
+import { MapPin } from 'phosphor-react-native'
+import { getMapIconSvg } from '../lib/mapCategories'
+
+const AMSTERDAM = [4.9041, 52.3676]
+const MAPTILER_KEY = process.env.EXPO_PUBLIC_MAPTILER_KEY
+
+function getMapStyle() {
+  const hour = new Date().getHours()
+  const isNight = hour >= 20 || hour < 7  // 8pm → 7am = dark mode
+  return isNight
+    ? `https://api.maptiler.com/maps/019e33af-3185-79df-9f26-1bc6d896eeee/style.json?key=${MAPTILER_KEY}`
+    : `https://api.maptiler.com/maps/streets-v2/style.json?key=${MAPTILER_KEY}`
+}
+
+// ─── Marker HTML builder (identical logic to old Leaflet version) ─────────────
+function createMarkerHtml(r, isSelected = false) {
+  const isSponsored = r.is_sponsored
+  const size = isSponsored ? 42 : 34
+  const bg = isSponsored ? '#f97316' : 'white'
+  const border = isSponsored
+    ? '3px solid white'
+    : isSelected
+    ? '3px solid #f97316'
+    : '2px solid #e5e7eb'
+  const shadow = isSelected
+    ? '0 3px 12px rgba(249,115,22,0.5)'
+    : isSponsored
+    ? '0 3px 12px rgba(249,115,22,0.4)'
+    : '0 2px 6px rgba(0,0,0,0.15)'
+  const displayName = r.map_label || r.name || ''
+  const name = displayName.length > 12 ? displayName.slice(0, 12) + '…' : displayName
+  const iconColor = isSponsored ? 'white' : '#f97316'
+  const iconSvg = getMapIconSvg(r.category, iconColor)
+
+  return (
+    '<div style="display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;">' +
+    '<div style="width:' + size + 'px;height:' + size + 'px;background:' + bg +
+    ';border:' + border + ';border-radius:50%;display:flex;align-items:center;' +
+    'justify-content:center;box-shadow:' + shadow + ';flex-shrink:0;' +
+    'transition:transform 0.15s,box-shadow 0.15s;transform:' + (isSelected ? 'scale(1.25)' : 'scale(1)') + ';">' +
+    '<div style="width:' + (isSponsored ? 24 : 16) + 'px;height:' +
+    (isSponsored ? 24 : 16) + 'px;display:flex;align-items:center;justify-content:center;">' +
+    iconSvg + '</div></div>' +
+    '<div style="background:white;color:#374151;font-size:9px;font-weight:600;' +
+    'padding:1px 4px;border-radius:4px;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,0.1);' +
+    'max-width:90px;overflow:hidden;text-overflow:ellipsis;">' + name + '</div></div>'
+  )
+}
+
+// ─── Web: MapLibre map ────────────────────────────────────────────────────────
+function WebMap({ restaurants, selected, onSelect }) {
+  const mapRef = useRef(null)
+  const mapInstanceRef = useRef(null)
+  const markersRef = useRef([])   // [{ r, marker, el }]
+  const initializedRef = useRef(false)
+
+  // ── Init map once ──────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (initializedRef.current || !mapRef.current) return
+    initializedRef.current = true
+
+    import('maplibre-gl').then(({ default: maplibregl }) => {
+      // Inject CSS once
+      if (!document.getElementById('maplibre-css')) {
+        const link = document.createElement('link')
+        link.id = 'maplibre-css'
+        link.rel = 'stylesheet'
+        link.href = 'https://unpkg.com/maplibre-gl/dist/maplibre-gl.css'
+        document.head.appendChild(link)
+      }
+
+      const map = new maplibregl.Map({
+        container: mapRef.current,
+        style: getMapStyle(),
+        center: AMSTERDAM,
+        zoom: 13,
+        attributionControl: false,
+      })
+
+      map.addControl(new maplibregl.NavigationControl(), 'bottom-right')
+      map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left')
+      mapInstanceRef.current = map
+
+      // Suppress missing sprite image warnings
+      map.on('styleimagemissing', (e) => {
+        // Silently ignore missing images
+      })
+
+      map.on('load', () => {
+        // Remove all label layers except transit stations
+        const layers = map.getStyle().layers
+        layers.forEach(layer => {
+          if (layer.type !== 'symbol') return  // only touch label layers
+
+          const id = layer.id.toLowerCase()
+
+          // Keep transit-related labels
+          const isTransit =
+            id.includes('transit') ||
+            id.includes('station') ||
+            id.includes('bus') ||
+            id.includes('rail') ||
+            id.includes('metro') ||
+            id.includes('subway') ||
+            id.includes('tram') ||
+            id.includes('stop')
+
+          if (!isTransit) {
+            map.setLayoutProperty(layer.id, 'visibility', 'none')
+          }
+        })
+
+        renderMarkers(maplibregl, map, restaurants, selected, onSelect, markersRef)
+      })
+    })
+
+    return () => {
+      markersRef.current.forEach(({ marker }) => marker.remove())
+      markersRef.current = []
+      mapInstanceRef.current?.remove()
+      mapInstanceRef.current = null
+      initializedRef.current = false
+    }
+  }, [])
+
+  // ── Re-render markers when restaurant list changes ─────────────────────────
+  useEffect(() => {
+    const map = mapInstanceRef.current
+    if (!map) return
+    import('maplibre-gl').then(({ default: maplibregl }) => {
+      if (map.loaded()) {
+        renderMarkers(maplibregl, map, restaurants, selected, onSelect, markersRef)
+      } else {
+        map.once('load', () =>
+          renderMarkers(maplibregl, map, restaurants, selected, onSelect, markersRef)
+        )
+      }
+    })
+  }, [restaurants])
+
+  // ── Update only the 2 affected markers when selection changes ──────────────
+  useEffect(() => {
+    if (!mapInstanceRef.current) return
+    import('maplibre-gl').then(({ default: maplibregl }) => {
+      markersRef.current.forEach(({ r, marker }) => {
+        const isSelected = !!(selected && r.id === selected.id)
+        if (marker._isSelected === isSelected) return
+        marker._isSelected = isSelected
+
+        const size = r.is_sponsored ? 42 : 34
+        const iconWidth = size + 20
+        const iconHeight = size + 28
+
+        // Replace marker element HTML
+        const el = document.createElement('div')
+        el.innerHTML = createMarkerHtml(r, isSelected)
+        const wrapper = el.firstChild
+        wrapper.addEventListener('click', () => onSelect(r))
+
+        marker.getElement().replaceWith(wrapper)
+        // maplibre-gl doesn't have setIcon like Leaflet — we recreate the marker
+        marker.remove()
+        const newMarker = new maplibregl.Marker({ element: wrapper, anchor: 'bottom' })
+          .setLngLat([r.longitude, r.latitude])
+          .addTo(mapInstanceRef.current)
+        newMarker._isSelected = isSelected
+
+        // Update ref
+        const idx = markersRef.current.findIndex(m => m.r.id === r.id)
+        if (idx !== -1) markersRef.current[idx] = { r, marker: newMarker, el: wrapper }
+      })
+    })
+  }, [selected])
+
+  // ── Pan to selected ────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!mapInstanceRef.current || !selected) return
+    mapInstanceRef.current.flyTo({
+      center: [selected.longitude, selected.latitude],
+      zoom: 16,
+      speed: 1.2,
+    })
+  }, [selected])
+
+  // ── Auto-switch style at night boundary ────────────────────────────────────
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const map = mapInstanceRef.current
+      if (!map) return
+      const expected = getMapStyle()
+      const current = map.getStyle()?.sprite || ''
+      if (!current.includes(expected.includes('dark') ? 'dark' : 'streets-v2/')) {
+        map.setStyle(expected)
+        // Re-render markers after style reloads
+        map.once('styledata', () => {
+          import('maplibre-gl').then(({ default: maplibregl }) => {
+            // Force re-render by clearing ID guard
+            markersRef.current.forEach(({ marker }) => marker.remove())
+            markersRef.current = []
+            renderMarkers(maplibregl, map, restaurants, selected, onSelect, markersRef)
+          })
+        })
+      }
+    }, 60 * 1000) // check every minute
+    return () => clearInterval(interval)
+  }, [restaurants, selected])
+
+  // ── Locate me ─────────────────────────────────────────────────────────────
+  const locateMe = () => {
+    const map = mapInstanceRef.current
+    if (!map) return
+    navigator.geolocation?.getCurrentPosition(
+      (pos) => {
+        map.flyTo({ center: [pos.coords.longitude, pos.coords.latitude], zoom: 16 })
+      },
+      () => alert('위치를 가져올 수 없어요. 위치 권한을 허용해주세요.')
+    )
+  }
+
+  return (
+    <div style={{ position: 'relative', width: '100%', height: '100%', minHeight: '300px' }}>
+      <div ref={mapRef} style={{ width: '100%', height: '100%', minHeight: '300px', zIndex: 1 }} />
+      <button
+        onClick={locateMe}
+        style={{
+          position: 'absolute', bottom: '80px', right: '10px', zIndex: 1000,
+          background: 'white', border: 'none', borderRadius: '8px',
+          padding: '8px 10px', boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}
+        title="현재 위치"
+      >
+        <MapPin size={20} weight="fill" color="#f97316" />
+      </button>
+    </div>
+  )
+}
+
+// ── Render all markers (called when list changes) ──────────────────────────────
+function renderMarkers(maplibregl, map, restaurants, selected, onSelect, markersRef) {
+  // Guard: skip if IDs haven't changed
+  const valid = (restaurants || []).filter(r => r.latitude && r.longitude)
+  const newIds = valid.map(r => r.id).join(',')
+  const oldIds = markersRef.current.map(m => m.r.id).join(',')
+  if (newIds === oldIds) return
+
+  // Remove old
+  markersRef.current.forEach(({ marker }) => marker.remove())
+  markersRef.current = []
+
+  if (valid.length === 0) return
+
+  // Sponsored on top (rendered last = higher z-index)
+  const sorted = [...valid].sort((a, b) => (a.is_sponsored ? 1 : 0) - (b.is_sponsored ? 1 : 0))
+
+  sorted.forEach(r => {
+    const isSelected = !!(selected && r.id === selected.id)
+
+    const el = document.createElement('div')
+    el.innerHTML = createMarkerHtml(r, isSelected)
+    const wrapper = el.firstChild
+    wrapper.addEventListener('click', () => onSelect(r))
+
+    const marker = new maplibregl.Marker({ element: wrapper, anchor: 'bottom' })
+      .setLngLat([r.longitude, r.latitude])
+      .addTo(map)
+
+    marker._isSelected = isSelected
+    markersRef.current.push({ r, marker, el: wrapper })
+  })
+
+  // Fit bounds
+  if (valid.length === 1) {
+    map.flyTo({ center: [valid[0].longitude, valid[0].latitude], zoom: 15 })
+  } else if (valid.length > 1) {
+    const lngs = valid.map(r => r.longitude)
+    const lats = valid.map(r => r.latitude)
+    map.fitBounds(
+      [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
+      { padding: [40, 40], maxZoom: 16 }
+    )
+  }
+}
+
+// ─── Native fallback: scrollable list ────────────────────────────────────────
+function NativeList({ restaurants, selected, onSelect }) {
+  const valid = (restaurants || []).filter(r => r.latitude && r.longitude)
+  return (
+    <ScrollView style={{ flex: 1, backgroundColor: '#f9fafb' }} contentContainerStyle={{ padding: 12, gap: 8 }}>
+      {valid.length === 0 ? (
+        <Text style={{ color: '#6b7280', textAlign: 'center', marginTop: 32 }}>등록된 장소가 없어요</Text>
+      ) : valid.map(r => (
+        <TouchableOpacity
+          key={r.id}
+          onPress={() => onSelect(r)}
+          style={{
+            backgroundColor: selected?.id === r.id ? '#fff7ed' : 'white',
+            borderRadius: 12, borderWidth: 1,
+            borderColor: selected?.id === r.id ? '#f97316' : '#f3f4f6',
+            padding: 14, flexDirection: 'row', alignItems: 'center', gap: 10,
+          }}
+        >
+          <View style={{
+            width: 36, height: 36, borderRadius: 18,
+            backgroundColor: r.is_sponsored ? '#f97316' : 'white',
+            borderWidth: 2, borderColor: r.is_sponsored ? 'white' : '#e5e7eb',
+            alignItems: 'center', justifyContent: 'center',
+          }}>
+            <MapPin size={16} weight="fill" color={r.is_sponsored ? 'white' : '#f97316'} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontWeight: '600', color: '#111827', fontSize: 14 }}>{r.name}</Text>
+            {r.address ? <Text style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>{r.address}</Text> : null}
+            {r.discount_info ? (
+              <Text style={{ fontSize: 12, color: '#f97316', marginTop: 2 }}>
+                {r.discount_info.replace(/<[^>]+>/g, '')}
+              </Text>
+            ) : null}
+          </View>
+          {r.is_sponsored && (
+            <View style={{ backgroundColor: '#fff7ed', borderRadius: 999, paddingHorizontal: 6, paddingVertical: 2 }}>
+              <Text style={{ fontSize: 10, color: '#ea580c' }}>제휴</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      ))}
+    </ScrollView>
+  )
+}
+
+// ─── Export ───────────────────────────────────────────────────────────────────
+export default function MapViewComponent({ restaurants, selected, onSelect }) {
+  if (Platform.OS === 'web') {
+    return <WebMap restaurants={restaurants} selected={selected} onSelect={onSelect} />
+  }
+  return <NativeList restaurants={restaurants} selected={selected} onSelect={onSelect} />
+}
