@@ -112,7 +112,7 @@ export default function MemberPage() {
   );
 }
 
-// ─── QR Tab ────────────────────────────────────────────────────────────────────
+// ─── QR Tab ──────────────────────────────────────────────────────────────────── 
 function QRTab({ member, isValid, qrValue, secondsLeft }) {
   const router = useRouter();
 
@@ -179,7 +179,7 @@ function QRTab({ member, isValid, qrValue, secondsLeft }) {
   );
 }
 
-// ─── Events Tab ─────────────────────────────────────────────────────────────────
+// ─── Events Tab ───────────────────────────────────────────────────────────────── 
 function EventsTab({ events }) {
   const [expandedId, setExpandedId] = useState(null);
   const [slideIndexes, setSlideIndexes] = useState({});
@@ -188,13 +188,9 @@ function EventsTab({ events }) {
 
   const setSlide = (eventId, idx) => {
     setSlideIndexes((prev) => ({ ...prev, [eventId]: idx }));
-    // Scroll to the selected image
     if (scrollRefs.current[eventId]) {
       const slideWidth = SCREEN_WIDTH - 64;
-      scrollRefs.current[eventId].scrollTo({
-        x: idx * slideWidth,
-        animated: true,
-      });
+      scrollRefs.current[eventId].scrollTo({ x: idx * slideWidth, animated: true });
     }
   };
 
@@ -202,29 +198,8 @@ function EventsTab({ events }) {
     const start = new Date(ev.event_date);
     const end = new Date(start.getTime() + 2 * 60 * 60 * 1000);
     const pad = (n) => String(n).padStart(2, '0');
-    const fmt = (d) =>
-      d.getUTCFullYear() +
-      '' +
-      pad(d.getUTCMonth() + 1) +
-      '' +
-      pad(d.getUTCDate()) +
-      'T' +
-      pad(d.getUTCHours()) +
-      '' +
-      pad(d.getUTCMinutes()) +
-      '00Z';
-    const ics =
-      'BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nDTSTART:' +
-      fmt(start) +
-      '\nDTEND:' +
-      fmt(end) +
-      '\nSUMMARY:' +
-      ev.title +
-      '\nLOCATION:' +
-      (ev.location || '') +
-      '\nDESCRIPTION:' +
-      (ev.description || '') +
-      '\nEND:VEVENT\nEND:VCALENDAR';
+    const fmt = (d) => d.getUTCFullYear() + '' + pad(d.getUTCMonth() + 1) + '' + pad(d.getUTCDate()) + 'T' + pad(d.getUTCHours()) + '' + pad(d.getUTCMinutes()) + '00Z';
+    const ics = 'BEGIN:VCALENDAR\\nVERSION:2.0\\nBEGIN:VEVENT\\nDTSTART:' + fmt(start) + '\\nDTEND:' + fmt(end) + '\\nSUMMARY:' + ev.title + '\\nLOCATION:' + (ev.location || '') + '\\nDESCRIPTION:' + (ev.description || '') + '\\nEND:VEVENT\\nEND:VCALENDAR';
     const encoded = encodeURIComponent(ics);
     Linking.openURL('data:text/calendar,' + encoded);
   };
@@ -247,16 +222,12 @@ function EventsTab({ events }) {
           marginBottom: 12,
         }}
       >
-        <TouchableOpacity
-          onPress={() => setExpandedId(isExpanded ? null : ev.id)}
-          activeOpacity={0.7}
-        >
+        <TouchableOpacity onPress={() => setExpandedId(isExpanded ? null : ev.id)} activeOpacity={0.7}>
           <View style={{ padding: 20 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
               <Text style={{ fontWeight: '600', color: '#111827', flex: 1 }}>{ev.title}</Text>
               <Text style={{ color: '#9ca3af', fontSize: 13 }}>{isExpanded ? '▲' : '▼'}</Text>
             </View>
-
             {ev.event_date ? (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                 <Calendar size={14} weight="fill" color="#f97316" />
@@ -272,7 +243,6 @@ function EventsTab({ events }) {
                 </Text>
               </View>
             ) : null}
-
             {ev.location ? (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <MapPin size={14} weight="fill" color="#6b7280" />
@@ -324,8 +294,8 @@ function EventsTab({ events }) {
                           <Image
                             source={{ uri: url }}
                             style={{
-                              width: slideWidth,
-                              height: slideWidth,
+                              width: '100%',
+                              height: '100%',
                             }}
                             resizeMode="contain"
                           />
@@ -392,18 +362,13 @@ function EventsTab({ events }) {
                       }}
                     >
                       {imgs.map((_, i) => (
-                        <TouchableOpacity
-                          key={i}
-                          onPress={() => setSlide(ev.id, i)}
-                          activeOpacity={0.7}
-                        >
+                        <TouchableOpacity key={i} onPress={() => setSlide(ev.id, i)} activeOpacity={0.7}>
                           <View
                             style={{
                               width: i === currentSlide ? 10 : 6,
                               height: i === currentSlide ? 10 : 6,
                               borderRadius: 999,
-                              backgroundColor:
-                                i === currentSlide ? '#f97316' : 'rgba(255,255,255,0.6)',
+                              backgroundColor: i === currentSlide ? '#f97316' : 'rgba(255,255,255,0.6)',
                               borderWidth: i === currentSlide ? 0 : 1,
                               borderColor: 'rgba(255,255,255,0.8)',
                             }}
@@ -422,7 +387,6 @@ function EventsTab({ events }) {
                   {ev.description}
                 </Text>
               ) : null}
-
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 {ev.event_date ? (
                   <TouchableOpacity
@@ -534,10 +498,7 @@ function EventsTab({ events }) {
 
           {pastEvents.length > 0 ? (
             <View style={{ marginTop: 24 }}>
-              <TouchableOpacity
-                onPress={() => setPastEventsExpanded(!pastEventsExpanded)}
-                activeOpacity={0.7}
-              >
+              <TouchableOpacity onPress={() => setPastEventsExpanded(!pastEventsExpanded)} activeOpacity={0.7}>
                 <View
                   style={{
                     flexDirection: 'row',
@@ -597,14 +558,15 @@ function EventsTab({ events }) {
   );
 }
 
-// ─── Map Tab ────────────────────────────────────────────────────────────────────
+// ─── Map Tab ──────────────────────────────────────────────────────────────────── 
 function MapTab({ restaurants }) {
   const [selected, setSelected] = useState(null);
   const [activeCategory, setActiveCategory] = useState('전체');
   const filtered = useMemo(
-    () => activeCategory === '전체'
-      ? restaurants
-      : restaurants.filter((r) => r.category === activeCategory),
+    () =>
+      activeCategory === '전체'
+        ? restaurants
+        : restaurants.filter((r) => r.category === activeCategory),
     [restaurants, activeCategory]
   );
 
@@ -652,11 +614,7 @@ function MapTab({ restaurants }) {
               }}
             >
               <View style={{ width: 14, height: 14 }}>
-                <SvgXml
-                  xml={coloredIcon}
-                  width="100%"
-                  height="100%"
-                />
+                <SvgXml xml={coloredIcon} width="100%" height="100%" />
               </View>
               <Text
                 style={{
@@ -671,12 +629,9 @@ function MapTab({ restaurants }) {
           );
         })}
       </ScrollView>
+
       <View style={{ flex: 1, position: 'relative' }}>
-        <MapViewComponent
-          restaurants={filtered}
-          selected={selected}
-          onSelect={setSelected}
-        />
+        <MapViewComponent restaurants={filtered} selected={selected} onSelect={setSelected} />
         {selected && (
           <SpotCard selected={selected} onClose={() => setSelected(null)} />
         )}
