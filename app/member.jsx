@@ -13,6 +13,7 @@ import { MAP_CATEGORIES } from '../src/lib/mapCategories';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapViewComponent from '../src/components/MapView';
 import { SpotCard } from '../src/components/SpotCard';
+import { CATEGORY_ICONS } from '../src/lib/mapCategories';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
@@ -403,18 +404,43 @@ function MapTab({ restaurants }) {
   return (
     <View style={{ flex: 1 }}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}
-        style={{ backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#f3f4f6', maxHeight: 48 }}
+        style={{ backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#f3f4f6', maxHeight: 52 }}
         contentContainerStyle={{ paddingHorizontal: 12, paddingVertical: 8, gap: 8 }}
       >
-        {MAP_CATEGORIES.map((cat) => (
-          <TouchableOpacity
-            key={cat}
-            onPress={() => { setActiveCategory(cat); setSelected(null); }}
-            style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, backgroundColor: activeCategory === cat ? '#f97316' : '#f3f4f6' }}
-          >
-            <Text style={{ fontSize: 12, fontWeight: '500', color: activeCategory === cat ? 'white' : '#4b5563' }}>{cat}</Text>
-          </TouchableOpacity>
-        ))}
+        {MAP_CATEGORIES.map((cat) => {
+          const isActive = activeCategory === cat;
+          const iconSvg = CATEGORY_ICONS[cat];
+          const iconColor = isActive ? 'white' : '#4b5563';
+          const coloredIcon = iconSvg.replace('fill="currentColor"', `fill="${iconColor}"`);
+
+          return (
+            <TouchableOpacity
+              key={cat}
+              onPress={() => { setActiveCategory(cat); setSelected(null); }}
+              style={{
+                paddingHorizontal: 10,
+                paddingVertical: 4,
+                borderRadius: 999,
+                backgroundColor: isActive ? '#f97316' : '#f3f4f6',
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6
+              }}
+            >
+              {/* Icon */}
+              <View style={{ width: 14, height: 14 }}>
+                <div
+                  dangerouslySetInnerHTML={{ __html: coloredIcon }}
+                  style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                />
+              </View>
+              {/* Label */}
+              <Text style={{ fontSize: 12, fontWeight: '500', color: isActive ? 'white' : '#4b5563' }}>
+                {cat}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </ScrollView>
       <View style={{ flex: 1, position: 'relative' }}>
         <MapViewComponent restaurants={filtered} selected={selected} onSelect={setSelected} />
