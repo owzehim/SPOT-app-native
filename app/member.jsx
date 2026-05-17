@@ -11,6 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import MapViewComponent from '../src/components/MapView';
 import { SpotCard } from '../src/components/SpotCard';
 import { CATEGORY_ICONS } from '../src/lib/mapCategories';
+import { SvgXml } from 'react-native-svg';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
@@ -28,13 +29,23 @@ export default function MemberPage() {
     const fetchData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       const { data: memberData } = await supabase
-        .from('members').select('*').eq('user_id', user.id).single();
+        .from('members')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
       const { data: adminData } = await supabase
-        .from('admin_roles').select('id').eq('user_id', user.id).single();
+        .from('admin_roles')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
       const { data: eventData } = await supabase
-        .from('events').select('*').order('event_date', { ascending: true });
+        .from('events')
+        .select('*')
+        .order('event_date', { ascending: true });
       const { data: restaurantData } = await supabase
-        .from('restaurants').select('*').order('created_at', { ascending: false });
+        .from('restaurants')
+        .select('*')
+        .order('created_at', { ascending: false });
 
       setMember(memberData);
       setIsAdmin(!!adminData);
@@ -42,7 +53,6 @@ export default function MemberPage() {
       setRestaurants(restaurantData || []);
       setLoading(false);
     };
-
     fetchData();
   }, []);
 
@@ -102,7 +112,7 @@ export default function MemberPage() {
   );
 }
 
-// ─── QR Tab ────────────────────────────────────────────────────────────────── 
+// ─── QR Tab ────────────────────────────────────────────────────────────────────
 function QRTab({ member, isValid, qrValue, secondsLeft }) {
   const router = useRouter();
 
@@ -169,7 +179,7 @@ function QRTab({ member, isValid, qrValue, secondsLeft }) {
   );
 }
 
-// ─── Events Tab ─────────────────────────────────────────────────────────────── 
+// ─── Events Tab ─────────────────────────────────────────────────────────────────
 function EventsTab({ events }) {
   const [expandedId, setExpandedId] = useState(null);
   const [slideIndexes, setSlideIndexes] = useState({});
@@ -215,21 +225,45 @@ function EventsTab({ events }) {
             </View>
           )}
         </TouchableOpacity>
+
         {isExpanded && (
           <View>
             {imgs.length > 0 && (
               <View style={{ paddingHorizontal: 16, marginBottom: 12 }}>
                 <View style={{ borderRadius: 16, overflow: 'hidden', backgroundColor: '#f3f4f6', aspectRatio: 1 }}>
-                  <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} onMomentumScrollEnd={(e) => { const idx = Math.round(e.nativeEvent.contentOffset.x / slideWidth); setSlide(ev.id, idx); }} style={{ width: slideWidth }}>
-                    {imgs.map((url, i) => (
-                      <Image key={i} source={{ uri: url }} style={{ width: slideWidth, aspectRatio: 1 }} resizeMode="contain" />
-                    ))}
+                  <ScrollView
+                    horizontal
+                    pagingEnabled
+                    showsHorizontalScrollIndicator={false}
+                    onMomentumScrollEnd={(e) => {
+                      const idx = Math.round(e.nativeEvent.contentOffset.x / slideWidth);
+                      setSlide(ev.id, idx);
+                    }}
+                    style={{ width: slideWidth }}
+                  >
+                    <View style={{ flexDirection: 'row' }}>
+                      {imgs.map((url, i) => (
+                        <Image
+                          key={i}
+                          source={{ uri: url }}
+                          style={{ width: slideWidth, aspectRatio: 1 }}
+                          resizeMode="contain"
+                        />
+                      ))}
+                    </View>
                   </ScrollView>
                   {imgs.length > 1 && (
                     <View style={{ position: 'absolute', bottom: 8, left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', gap: 6 }}>
                       {imgs.map((_, i) => (
                         <TouchableOpacity key={i} onPress={() => setSlide(ev.id, i)}>
-                          <View style={{ width: i === currentSlide ? 8 : 6, height: i === currentSlide ? 8 : 6, borderRadius: 999, backgroundColor: i === currentSlide ? 'white' : 'rgba(255,255,255,0.5)' }} />
+                          <View
+                            style={{
+                              width: i === currentSlide ? 8 : 6,
+                              height: i === currentSlide ? 8 : 6,
+                              borderRadius: 999,
+                              backgroundColor: i === currentSlide ? 'white' : 'rgba(255,255,255,0.5)',
+                            }}
+                          />
                         </TouchableOpacity>
                       ))}
                     </View>
@@ -237,19 +271,28 @@ function EventsTab({ events }) {
                 </View>
               </View>
             )}
+
             <View style={{ paddingHorizontal: 20, paddingBottom: 20 }}>
               {ev.description && (
-                <Text style={{ fontSize: 14, color: '#4b5563', lineHeight: 20, marginBottom: 12 }}>{ev.description}</Text>
+                <Text style={{ fontSize: 14, color: '#4b5563', lineHeight: 20, marginBottom: 12 }}>
+                  {ev.description}
+                </Text>
               )}
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 {ev.event_date && (
-                  <TouchableOpacity onPress={() => addToCalendar(ev)} style={{ flex: 1, backgroundColor: '#f3f4f6', borderRadius: 8, paddingVertical: 8, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 6 }}>
+                  <TouchableOpacity
+                    onPress={() => addToCalendar(ev)}
+                    style={{ flex: 1, backgroundColor: '#f3f4f6', borderRadius: 8, paddingVertical: 8, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 6 }}
+                  >
                     <Calendar size={14} weight="fill" color="#374151" />
                     <Text style={{ fontSize: 12, color: '#374151' }}>캘린더에 추가</Text>
                   </TouchableOpacity>
                 )}
                 {ev.instagram_url && (
-                  <TouchableOpacity onPress={() => Linking.openURL(ev.instagram_url)} style={{ flex: 1, backgroundColor: '#f97316', borderRadius: 8, paddingVertical: 8, alignItems: 'center', justifyContent: 'center' }}>
+                  <TouchableOpacity
+                    onPress={() => Linking.openURL(ev.instagram_url)}
+                    style={{ flex: 1, backgroundColor: '#f97316', borderRadius: 8, paddingVertical: 8, alignItems: 'center', justifyContent: 'center' }}
+                  >
                     <Text style={{ fontSize: 12, color: 'white' }}>Instagram 에서 열기</Text>
                   </TouchableOpacity>
                 )}
@@ -265,7 +308,6 @@ function EventsTab({ events }) {
   const upcomingEvents = events.filter((ev) => ev.event_date && new Date(ev.event_date) >= now);
   const pastEvents = events.filter((ev) => ev.event_date && new Date(ev.event_date) < now);
 
-  // Helper function to group events by month
   const groupEventsByMonth = (eventList) => {
     const grouped = {};
     eventList.forEach((ev) => {
@@ -280,7 +322,9 @@ function EventsTab({ events }) {
 
   const renderEventsByMonth = (eventList) => {
     const grouped = groupEventsByMonth(eventList);
-    return Object.entries(grouped).map(([month, monthEvents]) => (
+    const monthEntries = Object.entries(grouped);
+    
+    return monthEntries.map(([month, monthEvents]) => (
       <View key={month}>
         <Text style={{ fontSize: 12, fontWeight: '600', color: '#9ca3af', textTransform: 'uppercase', paddingTop: 8, marginBottom: 8 }}>
           {month}
@@ -329,11 +373,10 @@ function EventsTab({ events }) {
   );
 }
 
-// ─── Map Tab ───────────────────────────────────────────────────────── 
+// ─── Map Tab ────────────────────────────────────────────────────────────────────
 function MapTab({ restaurants }) {
   const [selected, setSelected] = useState(null);
   const [activeCategory, setActiveCategory] = useState('전체');
-
   const filtered = useMemo(
     () => activeCategory === '전체'
       ? restaurants
@@ -343,20 +386,37 @@ function MapTab({ restaurants }) {
 
   return (
     <View style={{ flex: 1 }}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}
-        style={{ backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#f3f4f6', maxHeight: 52 }}
-        contentContainerStyle={{ paddingHorizontal: 12, paddingVertical: 8, gap: 8 }}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={{
+          backgroundColor: 'white',
+          borderBottomWidth: 1,
+          borderBottomColor: '#f3f4f6',
+          maxHeight: 52,
+        }}
+        contentContainerStyle={{
+          paddingHorizontal: 12,
+          paddingVertical: 8,
+          gap: 8,
+        }}
       >
         {MAP_CATEGORIES.map((cat) => {
           const isActive = activeCategory === cat;
           const iconSvg = CATEGORY_ICONS[cat];
           const iconColor = isActive ? 'white' : '#4b5563';
-          const coloredIcon = iconSvg.replace('fill="currentColor"', `fill="${iconColor}"`);
+          const coloredIcon = iconSvg.replace(
+            'fill="currentColor"',
+            `fill="${iconColor}"`
+          );
 
           return (
             <TouchableOpacity
               key={cat}
-              onPress={() => { setActiveCategory(cat); setSelected(null); }}
+              onPress={() => {
+                setActiveCategory(cat);
+                setSelected(null);
+              }}
               style={{
                 paddingHorizontal: 10,
                 paddingVertical: 4,
@@ -364,18 +424,23 @@ function MapTab({ restaurants }) {
                 backgroundColor: isActive ? '#f97316' : '#f3f4f6',
                 flexDirection: 'row',
                 alignItems: 'center',
-                gap: 6
+                gap: 6,
               }}
             >
-              {/* Icon */}
               <View style={{ width: 14, height: 14 }}>
-                <div
-                  dangerouslySetInnerHTML={{ __html: coloredIcon }}
-                  style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                <SvgXml
+                  xml={coloredIcon}
+                  width="100%"
+                  height="100%"
                 />
               </View>
-              {/* Label */}
-              <Text style={{ fontSize: 12, fontWeight: '500', color: isActive ? 'white' : '#4b5563' }}>
+              <Text
+                style={{
+                  fontSize: 12,
+                  fontWeight: '500',
+                  color: isActive ? 'white' : '#4b5563',
+                }}
+              >
                 {cat}
               </Text>
             </TouchableOpacity>
@@ -383,8 +448,14 @@ function MapTab({ restaurants }) {
         })}
       </ScrollView>
       <View style={{ flex: 1, position: 'relative' }}>
-        <MapViewComponent restaurants={filtered} selected={selected} onSelect={setSelected} />
-        {selected && <SpotCard selected={selected} onClose={() => setSelected(null)} />}
+        <MapViewComponent
+          restaurants={filtered}
+          selected={selected}
+          onSelect={setSelected}
+        />
+        {selected && (
+          <SpotCard selected={selected} onClose={() => setSelected(null)} />
+        )}
       </View>
     </View>
   );
