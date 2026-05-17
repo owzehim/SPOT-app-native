@@ -191,8 +191,29 @@ function EventsTab({ events }) {
     const start = new Date(ev.event_date);
     const end = new Date(start.getTime() + 2 * 60 * 60 * 1000);
     const pad = (n) => String(n).padStart(2, '0');
-    const fmt = (d) => d.getUTCFullYear() + '' + pad(d.getUTCMonth() + 1) + '' + pad(d.getUTCDate()) + 'T' + pad(d.getUTCHours()) + '' + pad(d.getUTCMinutes()) + '00Z';
-    const ics = 'BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nDTSTART:' + fmt(start) + '\nDTEND:' + fmt(end) + '\nSUMMARY:' + ev.title + '\nLOCATION:' + (ev.location || '') + '\nDESCRIPTION:' + (ev.description || '') + '\nEND:VEVENT\nEND:VCALENDAR';
+    const fmt = (d) =>
+      d.getUTCFullYear() +
+      '' +
+      pad(d.getUTCMonth() + 1) +
+      '' +
+      pad(d.getUTCDate()) +
+      'T' +
+      pad(d.getUTCHours()) +
+      '' +
+      pad(d.getUTCMinutes()) +
+      '00Z';
+    const ics =
+      'BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nDTSTART:' +
+      fmt(start) +
+      '\nDTEND:' +
+      fmt(end) +
+      '\nSUMMARY:' +
+      ev.title +
+      '\nLOCATION:' +
+      (ev.location || '') +
+      '\nDESCRIPTION:' +
+      (ev.description || '') +
+      '\nEND:VEVENT\nEND:VCALENDAR';
     const encoded = encodeURIComponent(ics);
     Linking.openURL('data:text/calendar,' + encoded);
   };
@@ -204,33 +225,64 @@ function EventsTab({ events }) {
     const slideWidth = SCREEN_WIDTH - 64;
 
     return (
-      <View key={ev.id} style={{ backgroundColor: 'white', borderRadius: 16, borderWidth: 1, borderColor: '#f3f4f6', overflow: 'hidden', marginBottom: 12 }}>
-        <TouchableOpacity onPress={() => setExpandedId(isExpanded ? null : ev.id)} style={{ padding: 20 }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text style={{ fontWeight: '600', color: '#111827', flex: 1 }}>{ev.title}</Text>
-            <Text style={{ color: '#9ca3af', fontSize: 13 }}>{isExpanded ? '▲' : '▼'}</Text>
+      <View
+        key={ev.id}
+        style={{
+          backgroundColor: 'white',
+          borderRadius: 16,
+          borderWidth: 1,
+          borderColor: '#f3f4f6',
+          overflow: 'hidden',
+          marginBottom: 12,
+        }}
+      >
+        <TouchableOpacity
+          onPress={() => setExpandedId(isExpanded ? null : ev.id)}
+          activeOpacity={0.7}
+        >
+          <View style={{ padding: 20 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <Text style={{ fontWeight: '600', color: '#111827', flex: 1 }}>{ev.title}</Text>
+              <Text style={{ color: '#9ca3af', fontSize: 13 }}>{isExpanded ? '▲' : '▼'}</Text>
+            </View>
+
+            {ev.event_date ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                <Calendar size={14} weight="fill" color="#f97316" />
+                <Text style={{ fontSize: 13, color: '#f97316' }}>
+                  {new Date(ev.event_date).toLocaleString('ko-KR', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true,
+                  })}
+                </Text>
+              </View>
+            ) : null}
+
+            {ev.location ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <MapPin size={14} weight="fill" color="#6b7280" />
+                <Text style={{ fontSize: 13, color: '#6b7280' }}>{ev.location}</Text>
+              </View>
+            ) : null}
           </View>
-          {ev.event_date && (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
-              <Calendar size={14} weight="fill" color="#f97316" />
-              <Text style={{ fontSize: 13, color: '#f97316' }}>
-                {new Date(ev.event_date).toLocaleString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
-              </Text>
-            </View>
-          )}
-          {ev.location && (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
-              <MapPin size={14} weight="fill" color="#6b7280" />
-              <Text style={{ fontSize: 13, color: '#6b7280' }}>{ev.location}</Text>
-            </View>
-          )}
         </TouchableOpacity>
 
-        {isExpanded && (
+        {isExpanded ? (
           <View>
-            {imgs.length > 0 && (
+            {imgs.length > 0 ? (
               <View style={{ paddingHorizontal: 16, marginBottom: 12 }}>
-                <View style={{ borderRadius: 16, overflow: 'hidden', backgroundColor: '#f3f4f6', aspectRatio: 1 }}>
+                <View
+                  style={{
+                    borderRadius: 16,
+                    overflow: 'hidden',
+                    backgroundColor: '#f3f4f6',
+                    aspectRatio: 1,
+                  }}
+                >
                   <ScrollView
                     horizontal
                     pagingEnabled
@@ -252,8 +304,19 @@ function EventsTab({ events }) {
                       ))}
                     </View>
                   </ScrollView>
-                  {imgs.length > 1 && (
-                    <View style={{ position: 'absolute', bottom: 8, left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', gap: 6 }}>
+
+                  {imgs.length > 1 ? (
+                    <View
+                      style={{
+                        position: 'absolute',
+                        bottom: 8,
+                        left: 0,
+                        right: 0,
+                        flexDirection: 'row',
+                        justifyContent: 'center',
+                        gap: 6,
+                      }}
+                    >
                       {imgs.map((_, i) => (
                         <TouchableOpacity key={i} onPress={() => setSlide(ev.id, i)}>
                           <View
@@ -261,45 +324,63 @@ function EventsTab({ events }) {
                               width: i === currentSlide ? 8 : 6,
                               height: i === currentSlide ? 8 : 6,
                               borderRadius: 999,
-                              backgroundColor: i === currentSlide ? 'white' : 'rgba(255,255,255,0.5)',
+                              backgroundColor:
+                                i === currentSlide ? 'white' : 'rgba(255,255,255,0.5)',
                             }}
                           />
                         </TouchableOpacity>
                       ))}
                     </View>
-                  )}
+                  ) : null}
                 </View>
               </View>
-            )}
+            ) : null}
 
             <View style={{ paddingHorizontal: 20, paddingBottom: 20 }}>
-              {ev.description && (
+              {ev.description ? (
                 <Text style={{ fontSize: 14, color: '#4b5563', lineHeight: 20, marginBottom: 12 }}>
                   {ev.description}
                 </Text>
-              )}
+              ) : null}
+
               <View style={{ flexDirection: 'row', gap: 8 }}>
-                {ev.event_date && (
+                {ev.event_date ? (
                   <TouchableOpacity
                     onPress={() => addToCalendar(ev)}
-                    style={{ flex: 1, backgroundColor: '#f3f4f6', borderRadius: 8, paddingVertical: 8, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 6 }}
+                    style={{
+                      flex: 1,
+                      backgroundColor: '#f3f4f6',
+                      borderRadius: 8,
+                      paddingVertical: 8,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexDirection: 'row',
+                      gap: 6,
+                    }}
                   >
                     <Calendar size={14} weight="fill" color="#374151" />
                     <Text style={{ fontSize: 12, color: '#374151' }}>캘린더에 추가</Text>
                   </TouchableOpacity>
-                )}
-                {ev.instagram_url && (
+                ) : null}
+                {ev.instagram_url ? (
                   <TouchableOpacity
                     onPress={() => Linking.openURL(ev.instagram_url)}
-                    style={{ flex: 1, backgroundColor: '#f97316', borderRadius: 8, paddingVertical: 8, alignItems: 'center', justifyContent: 'center' }}
+                    style={{
+                      flex: 1,
+                      backgroundColor: '#f97316',
+                      borderRadius: 8,
+                      paddingVertical: 8,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
                   >
                     <Text style={{ fontSize: 12, color: 'white' }}>Instagram 에서 열기</Text>
                   </TouchableOpacity>
-                )}
+                ) : null}
               </View>
             </View>
           </View>
-        )}
+        ) : null}
       </View>
     );
   };
@@ -320,53 +401,116 @@ function EventsTab({ events }) {
     return grouped;
   };
 
-  const renderEventsByMonth = (eventList) => {
-    const grouped = groupEventsByMonth(eventList);
-    const monthEntries = Object.entries(grouped);
-    
-    return monthEntries.map(([month, monthEvents]) => (
-      <View key={month}>
-        <Text style={{ fontSize: 12, fontWeight: '600', color: '#9ca3af', textTransform: 'uppercase', paddingTop: 8, marginBottom: 8 }}>
-          {month}
-        </Text>
-        {monthEvents.map((ev) => renderEvent(ev))}
-      </View>
-    ));
-  };
-
   return (
-    <ScrollView contentContainerStyle={{ padding: 16, maxWidth: 448, alignSelf: 'center', width: '100%' }}>
-      <Text style={{ fontWeight: '600', color: '#111827', fontSize: 15, marginBottom: 16 }}>EVENTS</Text>
+    <ScrollView
+      contentContainerStyle={{
+        padding: 16,
+        maxWidth: 448,
+        alignSelf: 'center',
+        width: '100%',
+      }}
+    >
+      <Text style={{ fontWeight: '600', color: '#111827', fontSize: 15, marginBottom: 16 }}>
+        EVENTS
+      </Text>
+
       {events.length === 0 ? (
-        <View style={{ backgroundColor: 'white', borderRadius: 16, borderWidth: 1, borderColor: '#f3f4f6', padding: 32, alignItems: 'center' }}>
+        <View
+          style={{
+            backgroundColor: 'white',
+            borderRadius: 16,
+            borderWidth: 1,
+            borderColor: '#f3f4f6',
+            padding: 32,
+            alignItems: 'center',
+          }}
+        >
           <Text style={{ fontSize: 24, marginBottom: 8 }}>📅</Text>
           <Text style={{ color: '#6b7280', fontSize: 14 }}>예정된 이벤트가 없어요</Text>
         </View>
       ) : (
         <View>
-          {upcomingEvents.length > 0 && (
+          {upcomingEvents.length > 0 ? (
             <View>
-              {renderEventsByMonth(upcomingEvents)}
+              {Object.entries(groupEventsByMonth(upcomingEvents)).map(([month, monthEvents]) => (
+                <View key={month}>
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      fontWeight: '600',
+                      color: '#9ca3af',
+                      textTransform: 'uppercase',
+                      paddingTop: 8,
+                      marginBottom: 8,
+                    }}
+                  >
+                    {month}
+                  </Text>
+                  {monthEvents.map((ev) => renderEvent(ev))}
+                </View>
+              ))}
             </View>
-          )}
-          {pastEvents.length > 0 && (
+          ) : null}
+
+          {pastEvents.length > 0 ? (
             <View style={{ marginTop: 24 }}>
-              <TouchableOpacity onPress={() => setPastEventsExpanded(!pastEventsExpanded)} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderRadius: 8 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Text style={{ fontWeight: '600', color: '#4b5563' }}>지난 이벤트</Text>
-                  <View style={{ backgroundColor: '#e5e7eb', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 }}>
-                    <Text style={{ fontSize: 12, color: '#374151', fontWeight: '500' }}>{pastEvents.length}</Text>
+              <TouchableOpacity
+                onPress={() => setPastEventsExpanded(!pastEventsExpanded)}
+                activeOpacity={0.7}
+              >
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: 16,
+                    borderRadius: 8,
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Text style={{ fontWeight: '600', color: '#4b5563' }}>지난 이벤트</Text>
+                    <View
+                      style={{
+                        backgroundColor: '#e5e7eb',
+                        borderRadius: 999,
+                        paddingHorizontal: 8,
+                        paddingVertical: 2,
+                      }}
+                    >
+                      <Text style={{ fontSize: 12, color: '#374151', fontWeight: '500' }}>
+                        {pastEvents.length}
+                      </Text>
+                    </View>
                   </View>
+                  <Text style={{ color: '#9ca3af', fontSize: 18 }}>
+                    {pastEventsExpanded ? '▲' : '▼'}
+                  </Text>
                 </View>
-                <Text style={{ color: '#9ca3af', fontSize: 18 }}>{pastEventsExpanded ? '▲' : '▼'}</Text>
               </TouchableOpacity>
-              {pastEventsExpanded && (
+
+              {pastEventsExpanded ? (
                 <View style={{ marginTop: 12 }}>
-                  {renderEventsByMonth(pastEvents)}
+                  {Object.entries(groupEventsByMonth(pastEvents)).map(([month, monthEvents]) => (
+                    <View key={month}>
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          fontWeight: '600',
+                          color: '#9ca3af',
+                          textTransform: 'uppercase',
+                          paddingTop: 8,
+                          marginBottom: 8,
+                        }}
+                      >
+                        {month}
+                      </Text>
+                      {monthEvents.map((ev) => renderEvent(ev))}
+                    </View>
+                  ))}
                 </View>
-              )}
+              ) : null}
             </View>
-          )}
+          ) : null}
         </View>
       )}
     </ScrollView>
