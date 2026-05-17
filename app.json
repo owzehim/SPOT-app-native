@@ -4,36 +4,56 @@
     "slug": "spot-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "scheme": "spot",
-    "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
     "splash": {
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+    "assetBundlePatterns": ["**/*"],
     "ios": {
-      "supportsTablet": false,
-      "bundleIdentifier": "com.owzehim.spotapp"
+      "supportsTabletMode": true,
+      "bundleIdentifier": "com.spot.app"
     },
     "android": {
       "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.owzehim.spotapp"
+      "package": "com.spot.app"
     },
     "web": {
-      "bundler": "metro"
+      "favicon": "./assets/favicon.png",
+      "display": "standalone",
+      "scope": "/",
+      "startUrl": "/",
+      "orientation": "portrait-primary",
+      "shortcuts": [
+        {
+          "name": "SPOT",
+          "short_name": "SPOT",
+          "description": "SPOT - 매장 찾기",
+          "url": "/",
+          "icons": [
+            {
+              "src": "./assets/icon-192.png",
+              "sizes": "192x192",
+              "type": "image/png"
+            }
+          ]
+        }
+      ],
+      "preferRelatedApplications": false
     },
     "plugins": [
-      "expo-router",
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow SPOT to access your camera for QR scanning."
+          "cameraPermission": "Allow SPOT to access your camera to scan QR codes"
         }
-      ],
-      "expo-font",
-      "@maplibre/maplibre-react-native"
-    ]
+      ]
+    ],
+    "scheme": "spot"
   }
 }

@@ -1,20 +1,19 @@
 import { useEffect, useRef } from 'react'
 import { View, TouchableOpacity, Text, ScrollView, Platform } from 'react-native'
 import { MapPin } from 'phosphor-react-native'
-import { getMapIconSvg } from '../lib/mapCategories'
+import { getMapIconSvg, CATEGORY_ICONS } from '../lib/mapCategories'
 
 const AMSTERDAM = [4.9041, 52.3676]
 const MAPTILER_KEY = process.env.EXPO_PUBLIC_MAPTILER_KEY
 
 function getMapStyle() {
   const hour = new Date().getHours()
-  const isNight = hour >= 20 || hour < 7  // 8pm → 7am = dark mode
+  const isNight = hour >= 20 || hour < 7
   return isNight
     ? `https://api.maptiler.com/maps/019e33af-3185-79df-9f26-1bc6d896eeee/style.json?key=${MAPTILER_KEY}`
     : `https://api.maptiler.com/maps/streets-v2/style.json?key=${MAPTILER_KEY}`
 }
 
-// ─── Marker HTML builder (identical logic to old Leaflet version) ─────────────
 function createMarkerHtml(r, isSelected = false) {
   const isSponsored = r.is_sponsored
   const size = isSponsored ? 42 : 34
@@ -49,20 +48,17 @@ function createMarkerHtml(r, isSelected = false) {
   )
 }
 
-// ─── Web: MapLibre map ────────────────────────────────────────────────────────
 function WebMap({ restaurants, selected, onSelect }) {
   const mapRef = useRef(null)
   const mapInstanceRef = useRef(null)
-  const markersRef = useRef([])   // [{ r, marker, el }]
+  const markersRef = useRef([])
   const initializedRef = useRef(false)
 
-  // ── Init map once ──────────────────────────────────────────────────────────
   useEffect(() => {
     if (initializedRef.current || !mapRef.current) return
     initializedRef.current = true
 
     import('maplibre-gl').then(({ default: maplibregl }) => {
-      // Inject CSS once
       if (!document.getElementById('maplibre-css')) {
         const link = document.createElement('link')
         link.id = 'maplibre-css'
@@ -83,20 +79,17 @@ function WebMap({ restaurants, selected, onSelect }) {
       map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left')
       mapInstanceRef.current = map
 
-      // Suppress missing sprite image warnings
       map.on('styleimagemissing', (e) => {
         // Silently ignore missing images
       })
 
       map.on('load', () => {
-        // Remove all label layers except transit stations
         const layers = map.getStyle().layers
         layers.forEach(layer => {
-          if (layer.type !== 'symbol') return  // only touch label layers
+          if (layer.type !== 'symbol') return
 
           const id = layer.id.toLowerCase()
 
-          // Keep transit-related labels
           const isTransit =
             id.includes('transit') ||
             id.includes('station') ||
@@ -125,7 +118,6 @@ function WebMap({ restaurants, selected, onSelect }) {
     }
   }, [])
 
-  // ── Re-render markers when restaurant list changes ─────────────────────────
   useEffect(() => {
     const map = mapInstanceRef.current
     if (!map) return
@@ -140,7 +132,6 @@ function WebMap({ restaurants, selected, onSelect }) {
     })
   }, [restaurants])
 
-  // ── Update only the 2 affected markers when selection changes ──────────────
   useEffect(() => {
     if (!mapInstanceRef.current) return
     import('maplibre-gl').then(({ default: maplibregl }) => {
@@ -153,28 +144,24 @@ function WebMap({ restaurants, selected, onSelect }) {
         const iconWidth = size + 20
         const iconHeight = size + 28
 
-        // Replace marker element HTML
         const el = document.createElement('div')
         el.innerHTML = createMarkerHtml(r, isSelected)
         const wrapper = el.firstChild
         wrapper.addEventListener('click', () => onSelect(r))
 
         marker.getElement().replaceWith(wrapper)
-        // maplibre-gl doesn't have setIcon like Leaflet — we recreate the marker
         marker.remove()
         const newMarker = new maplibregl.Marker({ element: wrapper, anchor: 'bottom' })
           .setLngLat([r.longitude, r.latitude])
           .addTo(mapInstanceRef.current)
         newMarker._isSelected = isSelected
 
-        // Update ref
         const idx = markersRef.current.findIndex(m => m.r.id === r.id)
         if (idx !== -1) markersRef.current[idx] = { r, marker: newMarker, el: wrapper }
       })
     })
   }, [selected])
 
-  // ── Pan to selected ────────────────────────────────────────────────────────
   useEffect(() => {
     if (!mapInstanceRef.current || !selected) return
     mapInstanceRef.current.flyTo({
@@ -184,7 +171,6 @@ function WebMap({ restaurants, selected, onSelect }) {
     })
   }, [selected])
 
-  // ── Auto-switch style at night boundary ────────────────────────────────────
   useEffect(() => {
     const interval = setInterval(() => {
       const map = mapInstanceRef.current
@@ -193,21 +179,18 @@ function WebMap({ restaurants, selected, onSelect }) {
       const current = map.getStyle()?.sprite || ''
       if (!current.includes(expected.includes('dark') ? 'dark' : 'streets-v2/')) {
         map.setStyle(expected)
-        // Re-render markers after style reloads
         map.once('styledata', () => {
           import('maplibre-gl').then(({ default: maplibregl }) => {
-            // Force re-render by clearing ID guard
             markersRef.current.forEach(({ marker }) => marker.remove())
             markersRef.current = []
             renderMarkers(maplibregl, map, restaurants, selected, onSelect, markersRef)
           })
         })
       }
-    }, 60 * 1000) // check every minute
+    }, 60 * 1000)
     return () => clearInterval(interval)
   }, [restaurants, selected])
 
-  // ── Locate me ─────────────────────────────────────────────────────────────
   const locateMe = () => {
     const map = mapInstanceRef.current
     if (!map) return
@@ -238,21 +221,17 @@ function WebMap({ restaurants, selected, onSelect }) {
   )
 }
 
-// ── Render all markers (called when list changes) ──────────────────────────────
 function renderMarkers(maplibregl, map, restaurants, selected, onSelect, markersRef) {
-  // Guard: skip if IDs haven't changed
   const valid = (restaurants || []).filter(r => r.latitude && r.longitude)
   const newIds = valid.map(r => r.id).join(',')
   const oldIds = markersRef.current.map(m => m.r.id).join(',')
   if (newIds === oldIds) return
 
-  // Remove old
   markersRef.current.forEach(({ marker }) => marker.remove())
   markersRef.current = []
 
   if (valid.length === 0) return
 
-  // Sponsored on top (rendered last = higher z-index)
   const sorted = [...valid].sort((a, b) => (a.is_sponsored ? 1 : 0) - (b.is_sponsored ? 1 : 0))
 
   sorted.forEach(r => {
@@ -271,7 +250,6 @@ function renderMarkers(maplibregl, map, restaurants, selected, onSelect, markers
     markersRef.current.push({ r, marker, el: wrapper })
   })
 
-  // Fit bounds
   if (valid.length === 1) {
     map.flyTo({ center: [valid[0].longitude, valid[0].latitude], zoom: 15 })
   } else if (valid.length > 1) {
@@ -284,53 +262,67 @@ function renderMarkers(maplibregl, map, restaurants, selected, onSelect, markers
   }
 }
 
-// ─── Native fallback: scrollable list ────────────────────────────────────────
 function NativeList({ restaurants, selected, onSelect }) {
   const valid = (restaurants || []).filter(r => r.latitude && r.longitude)
   return (
     <ScrollView style={{ flex: 1, backgroundColor: '#f9fafb' }} contentContainerStyle={{ padding: 12, gap: 8 }}>
       {valid.length === 0 ? (
         <Text style={{ color: '#6b7280', textAlign: 'center', marginTop: 32 }}>등록된 장소가 없어요</Text>
-      ) : valid.map(r => (
-        <TouchableOpacity
-          key={r.id}
-          onPress={() => onSelect(r)}
-          style={{
-            backgroundColor: selected?.id === r.id ? '#fff7ed' : 'white',
-            borderRadius: 12, borderWidth: 1,
-            borderColor: selected?.id === r.id ? '#f97316' : '#f3f4f6',
-            padding: 14, flexDirection: 'row', alignItems: 'center', gap: 10,
-          }}
-        >
-          <View style={{
-            width: 36, height: 36, borderRadius: 18,
-            backgroundColor: r.is_sponsored ? '#f97316' : 'white',
-            borderWidth: 2, borderColor: r.is_sponsored ? 'white' : '#e5e7eb',
-            alignItems: 'center', justifyContent: 'center',
-          }}>
-            <MapPin size={16} weight="fill" color={r.is_sponsored ? 'white' : '#f97316'} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontWeight: '600', color: '#111827', fontSize: 14 }}>{r.name}</Text>
-            {r.address ? <Text style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>{r.address}</Text> : null}
-            {r.discount_info ? (
-              <Text style={{ fontSize: 12, color: '#f97316', marginTop: 2 }}>
-                {r.discount_info.replace(/<[^>]+>/g, '')}
-              </Text>
-            ) : null}
-          </View>
-          {r.is_sponsored && (
-            <View style={{ backgroundColor: '#fff7ed', borderRadius: 999, paddingHorizontal: 6, paddingVertical: 2 }}>
-              <Text style={{ fontSize: 10, color: '#ea580c' }}>제휴</Text>
+      ) : valid.map(r => {
+        const iconSvg = CATEGORY_ICONS[r.category]
+        const iconOrange = iconSvg ? iconSvg.replace('fill="currentColor"', 'fill="#f97316"') : ''
+        return (
+          <TouchableOpacity
+            key={r.id}
+            onPress={() => onSelect(r)}
+            style={{
+              backgroundColor: selected?.id === r.id ? '#fff7ed' : 'white',
+              borderRadius: 12, borderWidth: 1,
+              borderColor: selected?.id === r.id ? '#f97316' : '#f3f4f6',
+              padding: 14, flexDirection: 'row', alignItems: 'flex-start', gap: 10,
+            }}
+          >
+            <View style={{
+              width: 36, height: 36, borderRadius: 18,
+              backgroundColor: r.is_sponsored ? '#f97316' : 'white',
+              borderWidth: 2, borderColor: r.is_sponsored ? 'white' : '#e5e7eb',
+              alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
+            }}>
+              <MapPin size={16} weight="fill" color={r.is_sponsored ? 'white' : '#f97316'} />
             </View>
-          )}
-        </TouchableOpacity>
-      ))}
+            <View style={{ flex: 1 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                {iconOrange && (
+                  <div
+                    dangerouslySetInnerHTML={{ __html: iconOrange }}
+                    style={{ width: '14px', height: '14px', display: 'inline-block', flexShrink: 0 }}
+                  />
+                )}
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#4b5563' }}>
+                  {r.category || '기타'}
+                </Text>
+              </View>
+              <Text style={{ fontWeight: '600', color: '#111827', fontSize: 14 }}>{r.name}</Text>
+              {r.address ? <Text style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>{r.address}</Text> : null}
+              {r.discount_info ? (
+                <Text style={{ fontSize: 12, color: '#f97316', marginTop: 4 }}>
+                  {r.discount_info.replace(/<[^>]+>/g, '')}
+                </Text>
+              ) : null}
+            </View>
+            {r.is_sponsored && (
+              <View style={{ backgroundColor: '#fff7ed', borderRadius: 999, paddingHorizontal: 6, paddingVertical: 2, flexShrink: 0 }}>
+                <Text style={{ fontSize: 10, color: '#ea580c' }}>제휴</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        )
+      })}
     </ScrollView>
   )
 }
 
-// ─── Export ───────────────────────────────────────────────────────────────────
 export default function MapViewComponent({ restaurants, selected, onSelect }) {
   if (Platform.OS === 'web') {
     return <WebMap restaurants={restaurants} selected={selected} onSelect={onSelect} />

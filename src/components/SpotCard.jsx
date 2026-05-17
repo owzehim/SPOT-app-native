@@ -24,33 +24,65 @@ function Lightbox({ imgs, startIndex, onClose }) {
     <div
       onClick={onClose}
       style={{
-        position: 'fixed', inset: 0, zIndex: 9999,
-        background: 'rgba(0,0,0,0.92)', display: 'flex',
-        alignItems: 'center', justifyContent: 'center',
+        position: 'fixed',
+        inset: 0,
+        zIndex: 9999,
+        background: 'rgba(0,0,0,0.92)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
       }}
     >
       <button
         onClick={onClose}
         style={{
-          position: 'absolute', top: '16px', right: '20px',
-          background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff',
-          borderRadius: '999px', width: '36px', height: '36px',
-          fontSize: '20px', cursor: 'pointer', display: 'flex',
-          alignItems: 'center', justifyContent: 'center', zIndex: 10000,
+          position: 'absolute',
+          top: '16px',
+          right: '20px',
+          background: 'rgba(255,255,255,0.15)',
+          border: 'none',
+          color: '#fff',
+          borderRadius: '999px',
+          width: '36px',
+          height: '36px',
+          fontSize: '20px',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
         }}
-      >×</button>
+      >
+        ×
+      </button>
 
       {index > 0 && (
         <button
-          onClick={(e) => { e.stopPropagation(); setIndex((i) => i - 1) }}
-          style={{
-            position: 'absolute', left: '20px', top: '50%',
-            transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.15)',
-            border: 'none', color: '#fff', borderRadius: '999px',
-            width: '44px', height: '44px', fontSize: '24px', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000,
+          onClick={(e) => {
+            e.stopPropagation()
+            setIndex((i) => i - 1)
           }}
-        >‹</button>
+          style={{
+            position: 'absolute',
+            left: '20px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            background: 'rgba(255,255,255,0.15)',
+            border: 'none',
+            color: '#fff',
+            borderRadius: '999px',
+            width: '44px',
+            height: '44px',
+            fontSize: '24px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10000,
+          }}
+        >
+          ‹
+        </button>
       )}
 
       <img
@@ -58,39 +90,69 @@ function Lightbox({ imgs, startIndex, onClose }) {
         alt={'사진 ' + (index + 1)}
         onClick={(e) => e.stopPropagation()}
         style={{
-          maxWidth: '90vw', maxHeight: '90vh', objectFit: 'contain',
-          borderRadius: '12px', boxShadow: '0 8px 40px rgba(0,0,0,0.6)',
+          maxWidth: '90vw',
+          maxHeight: '90vh',
+          objectFit: 'contain',
+          borderRadius: '12px',
+          boxShadow: '0 8px 40px rgba(0,0,0,0.6)',
         }}
       />
 
       {index < imgs.length - 1 && (
         <button
-          onClick={(e) => { e.stopPropagation(); setIndex((i) => i + 1) }}
-          style={{
-            position: 'absolute', right: '20px', top: '50%',
-            transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.15)',
-            border: 'none', color: '#fff', borderRadius: '999px',
-            width: '44px', height: '44px', fontSize: '24px', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000,
+          onClick={(e) => {
+            e.stopPropagation()
+            setIndex((i) => i + 1)
           }}
-        >›</button>
+          style={{
+            position: 'absolute',
+            right: '20px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            background: 'rgba(255,255,255,0.15)',
+            border: 'none',
+            color: '#fff',
+            borderRadius: '999px',
+            width: '44px',
+            height: '44px',
+            fontSize: '24px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10000,
+          }}
+        >
+          ›
+        </button>
       )}
 
       {imgs.length > 1 && (
-        <div style={{
-          position: 'absolute', bottom: '20px', left: 0, right: 0,
-          display: 'flex', justifyContent: 'center', gap: '6px',
-        }}>
+        <div
+          style={{
+            position: 'absolute',
+            bottom: '20px',
+            left: 0,
+            right: 0,
+            display: 'flex',
+            justifyContent: 'center',
+            gap: '6px',
+          }}
+        >
           {imgs.map((_, i) => (
             <div
               key={i}
-              onClick={(e) => { e.stopPropagation(); setIndex(i) }}
+              onClick={(e) => {
+                e.stopPropagation()
+                setIndex(i)
+              }}
               style={{
                 width: i === index ? '8px' : '6px',
                 height: i === index ? '8px' : '6px',
                 borderRadius: '999px',
                 background: i === index ? '#fff' : 'rgba(255,255,255,0.4)',
-                cursor: 'pointer', transition: 'all 0.2s',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
               }}
             />
           ))}
@@ -110,6 +172,7 @@ export function SpotCard({ selected, onClose }) {
   const startHeightRef = useRef(0)
   const lastYRef = useRef(0)
   const cardRef = useRef(null)
+  const swipeStartXRef = useRef(0)
 
   const imgs = selected?.['image_urls'] || []
   const hasImages = imgs.length > 0
@@ -140,9 +203,7 @@ export function SpotCard({ selected, onClose }) {
     if (!e.touches || e.touches.length === 0) return
     startYRef.current = e.touches[0].clientY
     lastYRef.current = e.touches[0].clientY
-    startHeightRef.current = hasImages
-      ? cardHeight
-      : cardRef.current?.offsetHeight || MIN_HEIGHT
+    startHeightRef.current = hasImages ? cardHeight : cardRef.current?.offsetHeight || MIN_HEIGHT
     setIsDragging(true)
   }
 
@@ -180,6 +241,25 @@ export function SpotCard({ selected, onClose }) {
     }
   }
 
+  const handleMobileSwipeStart = (e) => {
+    if (e.touches && e.touches.length > 0) {
+      swipeStartXRef.current = e.touches[0].clientX
+    }
+  }
+
+  const handleMobileSwipeEnd = (e) => {
+    if (!swipeStartXRef.current || !e.changedTouches || e.changedTouches.length === 0) return
+    const dx = e.changedTouches[0].clientX - swipeStartXRef.current
+    swipeStartXRef.current = 0
+    if (dx < -40 && slideIndex < imgs.length - 1) {
+      e.stopPropagation()
+      setSlideIndex((i) => i + 1)
+    } else if (dx > 40 && slideIndex > 0) {
+      e.stopPropagation()
+      setSlideIndex((i) => i - 1)
+    }
+  }
+
   const isMax = cardHeight >= MAX_HEIGHT * 0.85
 
   const noImageStyle = {
@@ -203,11 +283,7 @@ export function SpotCard({ selected, onClose }) {
   return (
     <>
       {lightboxIndex !== null && (
-        <Lightbox
-          imgs={imgs}
-          startIndex={lightboxIndex}
-          onClose={() => setLightboxIndex(null)}
-        />
+        <Lightbox imgs={imgs} startIndex={lightboxIndex} onClose={() => setLightboxIndex(null)} />
       )}
 
       <div
@@ -235,9 +311,7 @@ export function SpotCard({ selected, onClose }) {
           if (e.button !== 0) return
           startYRef.current = e.clientY
           lastYRef.current = e.clientY
-          startHeightRef.current = hasImages
-            ? cardHeight
-            : cardRef.current?.offsetHeight || MIN_HEIGHT
+          startHeightRef.current = hasImages ? cardHeight : cardRef.current?.offsetHeight || MIN_HEIGHT
           setIsDragging(true)
         }}
         onMouseMove={(e) => {
@@ -273,19 +347,21 @@ export function SpotCard({ selected, onClose }) {
           <div style={{ paddingLeft: '14px', paddingRight: '14px', paddingTop: '2px', paddingBottom: '10px' }}>
             {/* Category / badges */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap', marginBottom: '3px' }}>
-              <span style={{
-                fontSize: '11px',
-                backgroundColor: '#f3f4f6',
-                color: '#4b5563',
-                paddingLeft: '6px',
-                paddingRight: '6px',
-                paddingTop: '2px',
-                paddingBottom: '2px',
-                borderRadius: '9999px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '3px'
-              }}>
+              <span
+                style={{
+                  fontSize: '11px',
+                  backgroundColor: '#f3f4f6',
+                  color: '#4b5563',
+                  paddingLeft: '6px',
+                  paddingRight: '6px',
+                  paddingTop: '2px',
+                  paddingBottom: '2px',
+                  borderRadius: '9999px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '3px',
+                }}
+              >
                 {iconSvg && (
                   <div
                     dangerouslySetInnerHTML={{
@@ -297,30 +373,34 @@ export function SpotCard({ selected, onClose }) {
                 {selected.category || '기타'}
               </span>
               {selected.price_range && (
-                <span style={{
-                  fontSize: '11px',
-                  backgroundColor: '#fed7aa',
-                  color: '#b45309',
-                  paddingLeft: '6px',
-                  paddingRight: '6px',
-                  paddingTop: '2px',
-                  paddingBottom: '2px',
-                  borderRadius: '9999px',
-                }}>
+                <span
+                  style={{
+                    fontSize: '11px',
+                    backgroundColor: '#fed7aa',
+                    color: '#b45309',
+                    paddingLeft: '6px',
+                    paddingRight: '6px',
+                    paddingTop: '2px',
+                    paddingBottom: '2px',
+                    borderRadius: '9999px',
+                  }}
+                >
                   {selected.price_range}
                 </span>
               )}
               {selected.is_sponsored && (
-                <span style={{
-                  fontSize: '11px',
-                  backgroundColor: '#fed7aa',
-                  color: '#b45309',
-                  paddingLeft: '5px',
-                  paddingRight: '5px',
-                  paddingTop: '2px',
-                  paddingBottom: '2px',
-                  borderRadius: '9999px',
-                }}>
+                <span
+                  style={{
+                    fontSize: '11px',
+                    backgroundColor: '#fed7aa',
+                    color: '#b45309',
+                    paddingLeft: '5px',
+                    paddingRight: '5px',
+                    paddingTop: '2px',
+                    paddingBottom: '2px',
+                    borderRadius: '9999px',
+                  }}
+                >
                   제휴
                 </span>
               )}
@@ -377,27 +457,17 @@ export function SpotCard({ selected, onClose }) {
           {/* ── Images ── */}
           {hasImages && (
             <div style={{ paddingBottom: '24px' }}>
-              {/* Mobile slider */}
+              {/* Mobile slider - 4:5 portrait ratio */}
               <div
-                style={{ display: 'block', touchAction: 'pan-y' }}
-                onTouchStart={(e) => { 
-                  if (e.touches && e.touches.length > 0) {
-                    e.currentTarget._swipeStartX = e.touches[0].clientX
-                  }
+                style={{
+                  display: isDesktop ? 'none' : 'block',
+                  touchAction: 'pan-y',
+                  paddingLeft: '14px',
+                  paddingRight: '14px',
+                  paddingBottom: '80px',
                 }}
-                onTouchEnd={(e) => {
-                  const start = e.currentTarget._swipeStartX
-                  if (start == null || !e.changedTouches || e.changedTouches.length === 0) return
-                  const dx = e.changedTouches[0].clientX - start
-                  e.currentTarget._swipeStartX = null
-                  if (dx < -40 && slideIndex < imgs.length - 1) {
-                    e.stopPropagation()
-                    setSlideIndex((i) => i + 1)
-                  } else if (dx > 40 && slideIndex > 0) {
-                    e.stopPropagation()
-                    setSlideIndex((i) => i - 1)
-                  }
-                }}
+                onTouchStart={handleMobileSwipeStart}
+                onTouchEnd={handleMobileSwipeEnd}
               >
                 <div
                   style={{
@@ -406,9 +476,6 @@ export function SpotCard({ selected, onClose }) {
                     overflow: 'hidden',
                     backgroundColor: '#f3f4f6',
                     aspectRatio: '4/5',
-                    paddingLeft: '14px',
-                    paddingRight: '14px',
-                    paddingBottom: '80px',
                   }}
                 >
                   <div
@@ -448,15 +515,17 @@ export function SpotCard({ selected, onClose }) {
                     ))}
                   </div>
                   {imgs.length > 1 && (
-                    <div style={{
-                      position: 'absolute',
-                      bottom: '8px',
-                      left: 0,
-                      right: 0,
-                      display: 'flex',
-                      justifyContent: 'center',
-                      gap: '6px',
-                    }}>
+                    <div
+                      style={{
+                        position: 'absolute',
+                        bottom: '8px',
+                        left: 0,
+                        right: 0,
+                        display: 'flex',
+                        justifyContent: 'center',
+                        gap: '6px',
+                      }}
+                    >
                       {imgs.map((_, i) => (
                         <div
                           key={i}
@@ -474,6 +543,66 @@ export function SpotCard({ selected, onClose }) {
                     </div>
                   )}
                 </div>
+              </div>
+
+              {/* Desktop grid - horizontal scrollable thumbnails with 4:5 ratio */}
+              <div
+                style={{
+                  display: isDesktop ? 'flex' : 'none',
+                  gap: '12px',
+                  paddingLeft: '14px',
+                  paddingRight: '14px',
+                  paddingBottom: '80px',
+                  overflowX: 'auto',
+                  overflowY: 'hidden',
+                  scrollBehavior: 'smooth',
+                  WebkitOverflowScrolling: 'touch',
+                  scrollbarWidth: 'none',
+                  msOverflowStyle: 'none',
+                }}
+              >
+                {imgs.map((url, i) => (
+                  <div
+                    key={i}
+                    onClick={() => setLightboxIndex(i)}
+                    style={{
+                      flexShrink: 0,
+                      borderRadius: '16px',
+                      overflow: 'hidden',
+                      backgroundColor: '#f3f4f6',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      aspectRatio: '4/5',
+                      width: '140px',
+                      minWidth: '140px',
+                      maxWidth: '360px',
+                      transition: 'transform 0.2s, box-shadow 0.2s',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'scale(1.05)'
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'scale(1)'
+                      e.currentTarget.style.boxShadow = 'none'
+                    }}
+                  >
+                    <img
+                      src={url}
+                      alt={'사진 ' + (i + 1)}
+                      loading={i === 0 ? 'eager' : 'lazy'}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        display: 'block',
+                      }}
+                      draggable={false}
+                    />
+                  </div>
+                ))}
               </div>
             </div>
           )}
