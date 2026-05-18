@@ -1,0 +1,21 @@
+/* global.css */
+
+/* Tailwind 기본 레이어 */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 웹 전용 전체 배경 / 폰트 설정 (선택이지만 추천) */
+html,
+body,
+#root,
+#__next {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: #f3f4f6; /* gray-100, PWA 배경 */
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
+}

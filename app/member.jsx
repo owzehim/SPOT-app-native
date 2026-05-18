@@ -187,12 +187,18 @@ function EventsTab({ events }) {
   const scrollRefs = useRef({});
 
   const setSlide = (eventId, idx) => {
-    setSlideIndexes((prev) => ({ ...prev, [eventId]: idx }));
-    if (scrollRefs.current[eventId]) {
-      const slideWidth = SCREEN_WIDTH - 64;
-      scrollRefs.current[eventId].scrollTo({ x: idx * slideWidth, animated: true });
-    }
-  };
+  setSlideIndexes((prev) => ({ ...prev, [eventId]: idx }));
+
+  if (scrollRefs.current[eventId]) {
+    const MAX_SLIDE_WIDTH = 384;
+    const slideWidth = Math.min(SCREEN_WIDTH - 64, MAX_SLIDE_WIDTH);
+
+    scrollRefs.current[eventId].scrollTo({
+      x: idx * slideWidth,
+      animated: true,
+    });
+  }
+};
 
   const addToCalendar = (ev) => {
     const start = new Date(ev.event_date);
@@ -207,8 +213,11 @@ function EventsTab({ events }) {
   const renderEvent = (ev) => {
     const isExpanded = expandedId === ev.id;
     const imgs = ev.image_urls || [];
-    const currentSlide = slideIndexes[ev.id] || 0;
-    const slideWidth = SCREEN_WIDTH - 64;
+const currentSlide = slideIndexes[ev.id] || 0;
+
+// 카드 maxWidth=448, 카드 안쪽 패딩 등을 고려해서 슬라이드 최대 폭을 제한
+const MAX_SLIDE_WIDTH = 384; // 448 카드 폭 - 좌우 여백 대략치
+const slideWidth = Math.min(SCREEN_WIDTH - 64, MAX_SLIDE_WIDTH);
 
     return (
       <View
