@@ -1,5 +1,6 @@
 // src/i18n/strings.js
 
+// 한국어 번역
 export const ko = {
   common: {
     appName: 'UvA-IN',
@@ -21,8 +22,6 @@ export const ko = {
     signupLink: '처음이신가요? 회원가입',
     errorInvalid: '이메일 또는 비밀번호가 올바르지 않습니다.',
   },
-  export const ko = {
-  // ...
   signup: {
     title: 'UvA-IN 회원가입',
     subtitle: '첫 로그인 전에 간단한 프로필을 작성해 주세요.',
@@ -57,7 +56,6 @@ export const ko = {
       '프로필 저장 중 오류가 발생했습니다. 임원에게 문의해 주세요.',
     errorUnknown: '알 수 없는 오류가 발생했습니다. 나중에 다시 시도해 주세요.',
   },
-},
   member: {
     header: '내 QR',
     membershipValid: '유효한 멤버십입니다.',
@@ -65,6 +63,7 @@ export const ko = {
   },
 };
 
+// 영어 번역
 export const en = {
   common: {
     appName: 'UvA-IN',
@@ -86,7 +85,7 @@ export const en = {
     signupLink: 'New here? Sign up',
     errorInvalid: 'Incorrect email or password.',
   },
- signup: {
+  signup: {
     title: 'Sign up for UvA-IN',
     subtitle: 'Please fill in a short profile before your first login.',
     emailLabel: 'Email',
@@ -118,5 +117,10 @@ export const en = {
     errorProfileSave:
       'Error while saving your profile. Please contact the committee.',
     errorUnknown: 'Unknown error. Please try again later.',
+  },
+  member: {
+    header: 'My QR',
+    membershipValid: 'Your membership is valid.',
+    membershipInvalid: 'Your membership is not valid.',
   },
 };

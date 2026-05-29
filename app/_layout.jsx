@@ -1,3 +1,4 @@
+// app/_layout.jsx
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -5,17 +6,9 @@ import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { supabase } from '../src/lib/supabase';
 import '../global.css';
-import { Stack } from 'expo-router';
 import { I18nProvider } from '@/i18n/LanguageContext';
 
-export default function RootLayout() {
-  return (
-    <I18nProvider>
-      <Stack screenOptions={{ headerShown: false }} />
-    </I18nProvider>
-  );
-}
-
+// 로그인 상태를 보고 어디로 보낼지 결정하는 Gate
 function AuthGate() {
   const [session, setSession] = useState(undefined);
   const router = useRouter();
@@ -25,7 +18,9 @@ function AuthGate() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
     });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
     });
     return () => subscription.unsubscribe();
@@ -37,10 +32,16 @@ function AuthGate() {
     const currentRoute = segments[0];
 
     if (!session) {
-      if (currentRoute === 'member' || currentRoute === 'admin' || currentRoute === 'scan') {
+      // 비로그인 상태에서 접근 못 하게 막을 페이지들
+      if (
+        currentRoute === 'member' ||
+        currentRoute === 'admin' ||
+        currentRoute === 'scan'
+      ) {
         router.replace('/public');
       }
     } else {
+      // 로그인 상태에서 login 페이지로 가면 member로 보내기
       if (currentRoute === 'login') {
         router.replace('/member');
       }
@@ -49,7 +50,9 @@ function AuthGate() {
 
   if (session === undefined) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <View
+        style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
+      >
         <Text style={{ color: '#6b7280' }}>로딩 중...</Text>
       </View>
     );
@@ -58,11 +61,14 @@ function AuthGate() {
   return <Stack screenOptions={{ headerShown: false }} />;
 }
 
+// 앱 전체 루트 레이아웃
 export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <AuthGate />
+        <I18nProvider>
+          <AuthGate />
+        </I18nProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
