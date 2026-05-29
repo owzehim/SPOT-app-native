@@ -1,3 +1,4 @@
+// app/signup.jsx
 import { useState } from 'react';
 import {
   View,
@@ -12,21 +13,7 @@ import {
 import { useRouter } from 'expo-router';
 import { X } from 'phosphor-react-native';
 import { supabase } from '../src/lib/supabase';
-
-// 간단한 국가 리스트 (나중에 늘리거나 ISO 코드로 바꿔도 됨)
-const COUNTRIES = [
-  'Netherlands',
-  'Korea',
-  'Germany',
-  'France',
-  'Spain',
-  'Italy',
-  'United Kingdom',
-  'United States',
-  'China',
-  'Japan',
-  'Other',
-];
+import { COUNTRIES } from '../src/constants/countries';
 
 // 성별 옵션
 const GENDER_OPTIONS = [
@@ -35,6 +22,30 @@ const GENDER_OPTIONS = [
   { value: 'non_binary', label: '논바이너리' },
   { value: 'prefer_not_to_say', label: '응답하지 않음' },
 ];
+
+// 학위 / 학년 옵션
+const DEGREE_OPTIONS = [
+  { value: 'bachelor', label: 'Bachelor' },
+  { value: 'master', label: 'Master' },
+];
+
+const STUDY_YEAR_OPTIONS = [
+  { value: '1', label: 'Year 1' },
+  { value: '2', label: 'Year 2' },
+  { value: '3', label: 'Year 3' },
+  { value: '4+', label: 'Year 4+' },
+];
+
+// TOTP secret 생성 (간단한 Base32 스타일 문자열)
+function generateTotpSecret(length = 32) {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  let secret = '';
+  for (let i = 0; i < length; i++) {
+    const idx = Math.floor(Math.random() * alphabet.length);
+    secret += alphabet[idx];
+  }
+  return secret;
+}
 
 export default function SignupPage() {
   const router = useRouter();
@@ -49,10 +60,11 @@ export default function SignupPage() {
   const [lastName, setLastName] = useState('');
   const [studentNumber, setStudentNumber] = useState('');
   const [major, setMajor] = useState('');
-  const [year, setYear] = useState(''); // 예: 1, 2, 3, 4 혹은 2024
   const [yearOfBirth, setYearOfBirth] = useState('');
   const [countryOfOrigin, setCountryOfOrigin] = useState('');
   const [gender, setGender] = useState('prefer_not_to_say');
+  const [degreeLevel, setDegreeLevel] = useState(null); // 'bachelor' | 'master'
+  const [studyYear, setStudyYear] = useState(null); // '1'|'2'|'3'|'4+'
 
   const [showCountryList, setShowCountryList] = useState(false);
 
@@ -71,8 +83,12 @@ export default function SignupPage() {
       setError('비밀번호가 일치하지 않습니다.');
       return;
     }
-    if (!firstName || !lastName || !studentNumber || !major || !year) {
+    if (!firstName || !lastName || !studentNumber || !major) {
       setError('기본 프로필 정보를 모두 입력해 주세요.');
+      return;
+    }
+    if (!degreeLevel || !studyYear) {
+      setError('학위 과정과 학년을 선택해 주세요.');
       return;
     }
 
@@ -97,9 +113,18 @@ export default function SignupPage() {
         return;
       }
 
-      // 2) members 프로필 레코드 생성
-      const yearOfBirthInt = yearOfBirth ? parseInt(yearOfBirth, 10) : null;
+      // 2) 학위/학년을 year 필드에 사람이 읽기 좋은 형태로 저장
+      const degreeLabel = degreeLevel === 'bachelor' ? 'Bachelor' : 'Master';
+      const yearLabel = `${degreeLabel} ${studyYear}`; // 예: 'Bachelor 1'
 
+      // 3) TOTP secret 생성
+      const totpSecret = generateTotpSecret();
+
+      const yearOfBirthInt = yearOfBirth
+        ? parseInt(yearOfBirth, 10)
+        : null;
+
+      // 4) members 프로필 레코드 생성
       const { error: profileError } = await supabase.from('members').insert({
         user_id: user.id,
         first_name: firstName,
@@ -107,24 +132,25 @@ export default function SignupPage() {
         University: 'University of Amsterdam',
         student_number: studentNumber,
         major,
-        year,
+        year: yearLabel,
         year_of_birth: yearOfBirthInt,
         country_of_origin: countryOfOrigin || null,
         gender,
-        is_member: false,             // 처음엔 멤버십 비활성
-        membership_valid_until: null, // 임원이 나중에 설정
+        totp_secret: totpSecret, // ★ NOT NULL 컬럼 채우기
+        is_member: false, // 처음엔 멤버십 비활성
+        membership_valid_until: null,
       });
 
       if (profileError) {
         setError(
           profileError.message ||
-            '프로필 저장 중 오류가 발생했습니다. 임원에게 문의해 주세요.'
+            '프로필 저장 중 오류가 발생했습니다. 임원에게 문의해 주세요.',
         );
         setLoading(false);
         return;
       }
 
-      // 3) 멤버 페이지로 이동
+      // 5) 멤버 페이지로 이동
       router.replace('/member');
     } catch (err) {
       console.error(err);
@@ -399,7 +425,7 @@ export default function SignupPage() {
               />
             </View>
 
-            {/* 학년 / 입학연도 등 */}
+            {/* 학위 / 학년 선택 */}
             <View style={{ marginBottom: 12 }}>
               <Text
                 style={{
@@ -409,21 +435,91 @@ export default function SignupPage() {
                   marginBottom: 4,
                 }}
               >
-                학년 또는 입학연도
+                학위 과정
               </Text>
-              <TextInput
-                value={year}
-                onChangeText={setYear}
-                placeholder="예: 1학년이면 1, 2024 입학이면 2024"
+              <View
                 style={{
-                  borderWidth: 1,
-                  borderColor: '#e5e7eb',
-                  borderRadius: 8,
-                  paddingHorizontal: 12,
-                  paddingVertical: 8,
-                  fontSize: 14,
+                  flexDirection: 'row',
+                  gap: 8,
+                  flexWrap: 'wrap',
                 }}
-              />
+              >
+                {DEGREE_OPTIONS.map((opt) => {
+                  const isActive = degreeLevel === opt.value;
+                  return (
+                    <TouchableOpacity
+                      key={opt.value}
+                      onPress={() => setDegreeLevel(opt.value)}
+                      style={{
+                        paddingHorizontal: 10,
+                        paddingVertical: 6,
+                        borderRadius: 999,
+                        borderWidth: 1,
+                        borderColor: isActive ? '#f97316' : '#e5e7eb',
+                        backgroundColor: isActive ? '#fff7ed' : 'white',
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          color: isActive ? '#c2410c' : '#374151',
+                          fontWeight: isActive ? '600' : '400',
+                        }}
+                      >
+                        {opt.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            <View style={{ marginBottom: 12 }}>
+              <Text
+                style={{
+                  fontSize: 13,
+                  fontWeight: '500',
+                  color: '#374151',
+                  marginBottom: 4,
+                }}
+              >
+                학년
+              </Text>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  gap: 8,
+                  flexWrap: 'wrap',
+                }}
+              >
+                {STUDY_YEAR_OPTIONS.map((opt) => {
+                  const isActive = studyYear === opt.value;
+                  return (
+                    <TouchableOpacity
+                      key={opt.value}
+                      onPress={() => setStudyYear(opt.value)}
+                      style={{
+                        paddingHorizontal: 10,
+                        paddingVertical: 6,
+                        borderRadius: 999,
+                        borderWidth: 1,
+                        borderColor: isActive ? '#f97316' : '#e5e7eb',
+                        backgroundColor: isActive ? '#fff7ed' : 'white',
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          color: isActive ? '#c2410c' : '#374151',
+                          fontWeight: isActive ? '600' : '400',
+                        }}
+                      >
+                        {opt.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             </View>
 
             {/* 출생연도 */}
@@ -499,7 +595,7 @@ export default function SignupPage() {
                     borderColor: '#e5e7eb',
                     borderRadius: 8,
                     marginTop: 6,
-                    maxHeight: 160,
+                    maxHeight: 200,
                     overflow: 'hidden',
                   }}
                 >
