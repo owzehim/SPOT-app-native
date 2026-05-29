@@ -10,6 +10,7 @@ import { Image } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
 import RestaurantsEditor from '@/admin/RestaurantsEditor';
+import { COUNTRIES } from '@/constants/countries';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 function toLocalDateString(isoString) {
@@ -149,6 +150,7 @@ function MembersTab() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
+
   const [form, setForm] = useState({
     email: '',
     password: '',
@@ -165,7 +167,13 @@ function MembersTab() {
   });
   const [showPassword, setShowPassword] = useState(false);
 
-  // 성별 옵션 (회원가입과 동일하게)
+  // 학위/학년 버튼 상태 (회원가입과 동일한 구조)
+  const [degreeLevel, setDegreeLevel] = useState(null); // 'bachelor' | 'master' | null
+  const [studyYear, setStudyYear] = useState(null);     // '1'|'2'|'3'|'4+'|null
+
+  // 출신 국가 드롭다운
+  const [showCountryList, setShowCountryList] = useState(false);
+
   const GENDER_OPTIONS = [
     { value: 'male', label: '남성' },
     { value: 'female', label: '여성' },
@@ -173,7 +181,18 @@ function MembersTab() {
     { value: 'prefer_not_to_say', label: '응답하지 않음' },
   ];
 
-  // 간단한 TOTP 시크릿 생성
+  const DEGREE_OPTIONS = [
+    { value: 'bachelor', label: 'Bachelor' },
+    { value: 'master', label: 'Master' },
+  ];
+
+  const STUDY_YEAR_OPTIONS = [
+    { value: '1', label: '1' },
+    { value: '2', label: '2' },
+    { value: '3', label: '3' },
+    { value: '4+', label: '4+' },
+  ];
+
   const generateSecret = (length = 32) => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
     let secret = '';
@@ -181,6 +200,25 @@ function MembersTab() {
       secret += chars[Math.floor(Math.random() * chars.length)];
     }
     return secret;
+  };
+
+  const composeYearLabel = (degree, year) => {
+    if (!degree || !year) return null;
+    const degreeLabel = degree === 'bachelor' ? 'Bachelor' : 'Master';
+    return `${degreeLabel} ${year}`; // 예: "Bachelor 1"
+  };
+
+  const parseYearLabel = (label) => {
+    if (!label) return { degree: null, year: null };
+    const lower = String(label).toLowerCase();
+    let degree = null;
+    if (lower.includes('bachelor')) degree = 'bachelor';
+    if (lower.includes('master')) degree = 'master';
+
+    const match = label.match(/(\d\+?)/);
+    const year = match ? match[1] : null;
+
+    return { degree, year };
   };
 
   const fetchMembers = async () => {
@@ -224,13 +262,15 @@ function MembersTab() {
       ? parseInt(form.year_of_birth, 10)
       : null;
 
+    const yearLabel = composeYearLabel(degreeLevel, studyYear);
+
     const { error: memberError } = await supabase.from('members').insert({
       user_id: authData.user?.id,
       first_name: form.first_name,
       last_name: form.last_name,
       student_number: form.student_number,
       major: form.major,
-      year: form.year || null,
+      year: yearLabel, // 버튼에서 만들어진 값
       year_of_birth: yearOfBirthInt,
       country_of_origin: form.country_of_origin || null,
       gender: form.gender || 'prefer_not_to_say',
@@ -248,22 +288,7 @@ function MembersTab() {
       '완료',
       `계정 생성 완료!\n이메일: ${form.email}\n비밀번호: ${form.password}`,
     );
-    setShowForm(false);
-    setEditTarget(null);
-    setForm({
-      email: '',
-      password: '',
-      first_name: '',
-      last_name: '',
-      student_number: '',
-      major: '',
-      year: '',
-      year_of_birth: '',
-      country_of_origin: '',
-      gender: 'prefer_not_to_say',
-      is_member: true,
-      membership_valid_until: '',
-    });
+    resetFormState();
     fetchMembers();
   };
 
@@ -272,6 +297,11 @@ function MembersTab() {
       ? parseInt(form.year_of_birth, 10)
       : null;
 
+    const yearLabel =
+      degreeLevel && studyYear
+        ? composeYearLabel(degreeLevel, studyYear)
+        : form.year || null;
+
     const { error } = await supabase
       .from('members')
       .update({
@@ -279,7 +309,7 @@ function MembersTab() {
         last_name: form.last_name,
         student_number: form.student_number,
         major: form.major,
-        year: form.year || null,
+        year: yearLabel,
         year_of_birth: yearOfBirthInt,
         country_of_origin: form.country_of_origin || null,
         gender: form.gender || 'prefer_not_to_say',
@@ -294,8 +324,7 @@ function MembersTab() {
     }
 
     Alert.alert('완료', '수정 완료');
-    setEditTarget(null);
-    setShowForm(false);
+    resetFormState();
     fetchMembers();
   };
 
@@ -313,7 +342,8 @@ function MembersTab() {
     ]);
   };
 
-  const openAdd = () => {
+  const resetFormState = () => {
+    setShowForm(false);
     setEditTarget(null);
     setForm({
       email: '',
@@ -329,10 +359,20 @@ function MembersTab() {
       is_member: true,
       membership_valid_until: '',
     });
+    setDegreeLevel(null);
+    setStudyYear(null);
+    setShowCountryList(false);
+    setShowPassword(false);
+  };
+
+  const openAdd = () => {
+    resetFormState();
     setShowForm(true);
   };
 
   const openEdit = (member) => {
+    const { degree, year } = parseYearLabel(member.year);
+
     setEditTarget(member);
     setForm({
       email: '',
@@ -349,6 +389,8 @@ function MembersTab() {
       is_member: !!member.is_member,
       membership_valid_until: member.membership_valid_until || '',
     });
+    setDegreeLevel(degree);
+    setStudyYear(year);
     setShowForm(true);
   };
 
@@ -520,15 +562,101 @@ function MembersTab() {
             </View>
           </View>
 
-          {/* 학년/과정 */}
-          <Field
-            label="학년 / 과정"
-            value={form.year}
-            onChange={(v) =>
-              setForm((f) => ({ ...f, year: v }))
-            }
-            placeholder="예: Bachelor 1, Master 2"
-          />
+          {/* 학위 / 학년 버튼 (회원가입과 동일) */}
+          <View>
+            <Text
+              style={{
+                fontSize: 12,
+                color: '#6b7280',
+                marginBottom: 4,
+              }}
+            >
+              학위 과정 / 학년
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 6 }}>
+              {DEGREE_OPTIONS.map((opt) => {
+                const active = degreeLevel === opt.value;
+                return (
+                  <TouchableOpacity
+                    key={opt.value}
+                    onPress={() => {
+                      setDegreeLevel(opt.value);
+                      const label = composeYearLabel(
+                        opt.value,
+                        studyYear,
+                      );
+                      setForm((f) => ({ ...f, year: label || '' }));
+                    }}
+                    style={{
+                      paddingHorizontal: 10,
+                      paddingVertical: 6,
+                      borderRadius: 999,
+                      borderWidth: 1,
+                      borderColor: active ? '#f97316' : '#e5e7eb',
+                      backgroundColor: active ? '#fff7ed' : 'white',
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        color: active ? '#c2410c' : '#374151',
+                        fontWeight: active ? '600' : '400',
+                      }}
+                    >
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              {STUDY_YEAR_OPTIONS.map((opt) => {
+                const active = studyYear === opt.value;
+                return (
+                  <TouchableOpacity
+                    key={opt.value}
+                    onPress={() => {
+                      setStudyYear(opt.value);
+                      const label = composeYearLabel(
+                        degreeLevel,
+                        opt.value,
+                      );
+                      setForm((f) => ({ ...f, year: label || '' }));
+                    }}
+                    style={{
+                      paddingHorizontal: 10,
+                      paddingVertical: 6,
+                      borderRadius: 999,
+                      borderWidth: 1,
+                      borderColor: active ? '#f97316' : '#e5e7eb',
+                      backgroundColor: active ? '#fff7ed' : 'white',
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        color: active ? '#c2410c' : '#374151',
+                        fontWeight: active ? '600' : '400',
+                      }}
+                    >
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            {form.year ? (
+              <Text
+                style={{
+                  marginTop: 4,
+                  fontSize: 11,
+                  color: '#6b7280',
+                }}
+              >
+                저장될 값: {form.year}
+              </Text>
+            ) : null}
+          </View>
 
           {/* 출생연도 */}
           <Field
@@ -541,15 +669,92 @@ function MembersTab() {
             keyboardType="numeric"
           />
 
-          {/* 출신 국가 */}
-          <Field
-            label="출신 국가"
-            value={form.country_of_origin}
-            onChange={(v) =>
-              setForm((f) => ({ ...f, country_of_origin: v }))
-            }
-            placeholder="예: Korea, Netherlands"
-          />
+          {/* 출신 국가 - 리스트 선택 */}
+          <View>
+            <Text
+              style={{
+                fontSize: 12,
+                color: '#6b7280',
+                marginBottom: 4,
+              }}
+            >
+              출신 국가
+            </Text>
+            <TouchableOpacity
+              onPress={() => setShowCountryList((v) => !v)}
+              style={{
+                borderWidth: 1,
+                borderColor: '#e5e7eb',
+                borderRadius: 8,
+                paddingHorizontal: 12,
+                paddingVertical: 10,
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 14,
+                  color: form.country_of_origin
+                    ? '#111827'
+                    : '#9ca3af',
+                }}
+              >
+                {form.country_of_origin || '선택해 주세요'}
+              </Text>
+              <Text style={{ color: '#9ca3af' }}>
+                {showCountryList ? '▲' : '▼'}
+              </Text>
+            </TouchableOpacity>
+            {showCountryList && (
+              <View
+                style={{
+                  borderWidth: 1,
+                  borderColor: '#e5e7eb',
+                  borderRadius: 8,
+                  marginTop: 6,
+                  maxHeight: 200,
+                  overflow: 'hidden',
+                }}
+              >
+                <ScrollView>
+                  {COUNTRIES.map((c) => (
+                    <TouchableOpacity
+                      key={c}
+                      onPress={() => {
+                        setForm((f) => ({
+                          ...f,
+                          country_of_origin: c,
+                        }));
+                        setShowCountryList(false);
+                      }}
+                      style={{
+                        paddingHorizontal: 12,
+                        paddingVertical: 8,
+                        backgroundColor:
+                          c === form.country_of_origin
+                            ? '#f97316'
+                            : 'white',
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 14,
+                          color:
+                            c === form.country_of_origin
+                              ? 'white'
+                              : '#111827',
+                        }}
+                      >
+                        {c}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+          </View>
 
           {/* 성별 */}
           <View>
@@ -687,10 +892,7 @@ function MembersTab() {
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => {
-                setShowForm(false);
-                setEditTarget(null);
-              }}
+              onPress={resetFormState}
               style={{
                 flex: 1,
                 backgroundColor: '#f3f4f6',
