@@ -12,31 +12,11 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { X } from 'phosphor-react-native';
-import { supabase } from '../src/lib/supabase';
-import { COUNTRIES } from '../src/constants/countries';
+import { supabase } from '@/lib/supabase';
+import { COUNTRIES } from '@/constants/countries';
+import { useI18n } from '@/i18n/LanguageContext';
 
-// 성별 옵션
-const GENDER_OPTIONS = [
-  { value: 'male', label: '남성' },
-  { value: 'female', label: '여성' },
-  { value: 'non_binary', label: '논바이너리' },
-  { value: 'prefer_not_to_say', label: '응답하지 않음' },
-];
-
-// 학위 / 학년 옵션
-const DEGREE_OPTIONS = [
-  { value: 'bachelor', label: 'Bachelor' },
-  { value: 'master', label: 'Master' },
-];
-
-const STUDY_YEAR_OPTIONS = [
-  { value: '1', label: '1' },
-  { value: '2', label: '2' },
-  { value: '3', label: '3' },
-  { value: '4+', label: '4+' },
-];
-
-// TOTP secret 생성 (간단한 Base32 스타일 문자열)
+// TOTP secret 생성 (Base32 스타일)
 function generateTotpSecret(length = 32) {
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
   let secret = '';
@@ -49,6 +29,7 @@ function generateTotpSecret(length = 32) {
 
 export default function SignupPage() {
   const router = useRouter();
+  const { t, language, setLanguage } = useI18n();
 
   // Auth
   const [email, setEmail] = useState('');
@@ -63,6 +44,8 @@ export default function SignupPage() {
   const [yearOfBirth, setYearOfBirth] = useState('');
   const [countryOfOrigin, setCountryOfOrigin] = useState('');
   const [gender, setGender] = useState('prefer_not_to_say');
+
+  // 학위/학년 버튼 (회원가입/어드민과 동일 구조)
   const [degreeLevel, setDegreeLevel] = useState(null); // 'bachelor' | 'master'
   const [studyYear, setStudyYear] = useState(null); // '1'|'2'|'3'|'4+'
 
@@ -71,24 +54,44 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const degreeOptions = [
+    { value: 'bachelor', label: 'Bachelor' },
+    { value: 'master', label: 'Master' },
+  ];
+
+  const studyYearOptions = [
+    { value: '1', label: '1' },
+    { value: '2', label: '2' },
+    { value: '3', label: '3' },
+    { value: '4+', label: '4+' },
+  ];
+
+  const genderOptions = [
+    { value: 'male', label: t('signup.genderMale') },
+    { value: 'female', label: t('signup.genderFemale') },
+    { value: 'non_binary', label: t('signup.genderNonBinary') },
+    { value: 'prefer_not_to_say', label: t('signup.genderPreferNot') },
+  ];
+
+  const composeYearLabel = (degree, year) => {
+    if (!degree || !year) return null;
+    const degreeLabel = degree === 'bachelor' ? 'Bachelor' : 'Master';
+    return `${degreeLabel} ${year}`; // "Bachelor 1"
+  };
+
   const handleSignup = async () => {
     setError('');
 
-    // 간단 검증
     if (!email || !password) {
-      setError('이메일과 비밀번호를 입력해 주세요.');
+      setError(t('signup.errorMissingAuth'));
       return;
     }
     if (password !== passwordConfirm) {
-      setError('비밀번호가 일치하지 않습니다.');
+      setError(t('signup.errorPasswordMismatch'));
       return;
     }
     if (!firstName || !lastName || !studentNumber || !major) {
-      setError('기본 프로필 정보를 모두 입력해 주세요.');
-      return;
-    }
-    if (!degreeLevel || !studyYear) {
-      setError('학위 과정과 학년을 선택해 주세요.');
+      setError(t('signup.errorMissingProfile'));
       return;
     }
 
@@ -101,60 +104,59 @@ export default function SignupPage() {
       });
 
       if (signUpError) {
-        setError(signUpError.message || '회원가입 중 오류가 발생했습니다.');
+        setError(
+          signUpError.message || t('signup.errorSignupFailed'),
+        );
         setLoading(false);
         return;
       }
 
       const user = data.user;
       if (!user) {
-        setError('회원가입에 실패했습니다. 다시 시도해 주세요.');
+        setError(t('signup.errorSignupFailed'));
         setLoading(false);
         return;
       }
 
-      // 2) 학위/학년을 year 필드에 사람이 읽기 좋은 형태로 저장
-      const degreeLabel = degreeLevel === 'bachelor' ? 'Bachelor' : 'Master';
-      const yearLabel = `${degreeLabel} ${studyYear}`; // 예: 'Bachelor 1'
-
-      // 3) TOTP secret 생성
+      // 2) year label + totp secret 생성
+      const yearLabel = composeYearLabel(degreeLevel, studyYear);
       const totpSecret = generateTotpSecret();
-
       const yearOfBirthInt = yearOfBirth
         ? parseInt(yearOfBirth, 10)
         : null;
 
-      // 4) members 프로필 레코드 생성
-      const { error: profileError } = await supabase.from('members').insert({
-        user_id: user.id,
-        first_name: firstName,
-        last_name: lastName,
-        University: 'University of Amsterdam',
-        student_number: studentNumber,
-        major,
-        year: yearLabel,
-        year_of_birth: yearOfBirthInt,
-        country_of_origin: countryOfOrigin || null,
-        gender,
-        totp_secret: totpSecret, // ★ NOT NULL 컬럼 채우기
-        is_member: false, // 처음엔 멤버십 비활성
-        membership_valid_until: null,
-      });
+      // 3) members 프로필 레코드 생성
+      const { error: profileError } = await supabase
+        .from('members')
+        .insert({
+          user_id: user.id,
+          first_name: firstName,
+          last_name: lastName,
+          University: 'University of Amsterdam',
+          student_number: studentNumber,
+          major,
+          year: yearLabel,
+          year_of_birth: yearOfBirthInt,
+          country_of_origin: countryOfOrigin || null,
+          gender,
+          totp_secret: totpSecret,
+          is_member: false,
+          membership_valid_until: null,
+        });
 
       if (profileError) {
         setError(
-          profileError.message ||
-            '프로필 저장 중 오류가 발생했습니다. 임원에게 문의해 주세요.',
+          profileError.message || t('signup.errorProfileSave'),
         );
         setLoading(false);
         return;
       }
 
-      // 5) 멤버 페이지로 이동
+      // 4) 멤버 페이지로 이동
       router.replace('/member');
     } catch (err) {
       console.error(err);
-      setError('알 수 없는 오류가 발생했습니다. 나중에 다시 시도해 주세요.');
+      setError(t('signup.errorUnknown'));
     } finally {
       setLoading(false);
     }
@@ -184,16 +186,59 @@ export default function SignupPage() {
             borderColor: '#f3f4f6',
           }}
         >
-          {/* Close */}
-          <TouchableOpacity
-            onPress={() => router.replace('/public')}
-            style={{ alignSelf: 'flex-end', marginBottom: 16 }}
+          {/* 상단: 닫기 / 언어 토글 */}
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 8,
+            }}
           >
-            <X size={24} weight="bold" color="#9ca3af" />
-          </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => router.replace('/public')}
+              style={{ padding: 4 }}
+            >
+              <X size={24} weight="bold" color="#9ca3af" />
+            </TouchableOpacity>
 
-          {/* Logo */}
-          <View style={{ alignItems: 'center', marginBottom: 24 }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 8,
+              }}
+            >
+              <TouchableOpacity onPress={() => setLanguage('ko')}>
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color:
+                      language === 'ko' ? '#111827' : '#9ca3af',
+                    fontWeight: language === 'ko' ? '600' : '400',
+                  }}
+                >
+                  한국어
+                </Text>
+              </TouchableOpacity>
+              <Text style={{ fontSize: 12, color: '#d1d5db' }}>|</Text>
+              <TouchableOpacity onPress={() => setLanguage('en')}>
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color:
+                      language === 'en' ? '#111827' : '#9ca3af',
+                    fontWeight: language === 'en' ? '600' : '400',
+                  }}
+                >
+                  English
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* 로고 */}
+          <View style={{ alignItems: 'center', marginBottom: 16 }}>
             <Image
               source={require('../assets/uvain-logo.png')}
               style={{ width: 72, height: 72 }}
@@ -201,15 +246,22 @@ export default function SignupPage() {
             />
           </View>
 
-          {/* Title */}
+          {/* 타이틀 */}
           <View style={{ alignItems: 'center', marginBottom: 16 }}>
             <Text
               style={{ fontSize: 20, fontWeight: 'bold', color: '#111827' }}
             >
-              UvA-IN 회원가입
+              {t('signup.title')}
             </Text>
-            <Text style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>
-              첫 로그인 전에 간단한 프로필을 작성해 주세요.
+            <Text
+              style={{
+                fontSize: 13,
+                color: '#6b7280',
+                marginTop: 4,
+                textAlign: 'center',
+              }}
+            >
+              {t('signup.subtitle')}
             </Text>
           </View>
 
@@ -223,7 +275,7 @@ export default function SignupPage() {
                 marginBottom: 4,
               }}
             >
-              이메일
+              {t('signup.emailLabel')}
             </Text>
             <TextInput
               value={email}
@@ -251,7 +303,7 @@ export default function SignupPage() {
                 marginBottom: 4,
               }}
             >
-              비밀번호
+              {t('signup.passwordLabel')}
             </Text>
             <TextInput
               value={password}
@@ -278,7 +330,7 @@ export default function SignupPage() {
                 marginBottom: 4,
               }}
             >
-              비밀번호 확인
+              {t('signup.passwordConfirmLabel')}
             </Text>
             <TextInput
               value={passwordConfirm}
@@ -296,7 +348,7 @@ export default function SignupPage() {
             />
           </View>
 
-          {/* 기본 프로필 */}
+          {/* 구분선 + 기본 정보 헤더 */}
           <View
             style={{
               borderTopWidth: 1,
@@ -314,11 +366,13 @@ export default function SignupPage() {
                 marginBottom: 8,
               }}
             >
-              기본 정보
+              {t('signup.basicInfo')}
             </Text>
 
             {/* 이름 */}
-            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+            <View
+              style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}
+            >
               <View style={{ flex: 1 }}>
                 <Text
                   style={{
@@ -328,12 +382,12 @@ export default function SignupPage() {
                     marginBottom: 4,
                   }}
                 >
-                  이름
+                  {t('signup.firstName')}
                 </Text>
                 <TextInput
                   value={firstName}
                   onChangeText={setFirstName}
-                  placeholder="길동"
+                  placeholder="길동 / John"
                   style={{
                     borderWidth: 1,
                     borderColor: '#e5e7eb',
@@ -353,12 +407,12 @@ export default function SignupPage() {
                     marginBottom: 4,
                   }}
                 >
-                  성
+                  {t('signup.lastName')}
                 </Text>
                 <TextInput
                   value={lastName}
                   onChangeText={setLastName}
-                  placeholder="홍"
+                  placeholder="홍 / Doe"
                   style={{
                     borderWidth: 1,
                     borderColor: '#e5e7eb',
@@ -381,7 +435,7 @@ export default function SignupPage() {
                   marginBottom: 4,
                 }}
               >
-                학번
+                {t('signup.studentNumber')}
               </Text>
               <TextInput
                 value={studentNumber}
@@ -408,7 +462,7 @@ export default function SignupPage() {
                   marginBottom: 4,
                 }}
               >
-                전공
+                {t('signup.major')}
               </Text>
               <TextInput
                 value={major}
@@ -435,17 +489,18 @@ export default function SignupPage() {
                   marginBottom: 4,
                 }}
               >
-                학위 과정
+                {t('signup.degreeAndYear')}
               </Text>
               <View
                 style={{
                   flexDirection: 'row',
                   gap: 8,
                   flexWrap: 'wrap',
+                  marginBottom: 6,
                 }}
               >
-                {DEGREE_OPTIONS.map((opt) => {
-                  const isActive = degreeLevel === opt.value;
+                {degreeOptions.map((opt) => {
+                  const active = degreeLevel === opt.value;
                   return (
                     <TouchableOpacity
                       key={opt.value}
@@ -455,15 +510,15 @@ export default function SignupPage() {
                         paddingVertical: 6,
                         borderRadius: 999,
                         borderWidth: 1,
-                        borderColor: isActive ? '#f97316' : '#e5e7eb',
-                        backgroundColor: isActive ? '#fff7ed' : 'white',
+                        borderColor: active ? '#f97316' : '#e5e7eb',
+                        backgroundColor: active ? '#fff7ed' : 'white',
                       }}
                     >
                       <Text
                         style={{
                           fontSize: 12,
-                          color: isActive ? '#c2410c' : '#374151',
-                          fontWeight: isActive ? '600' : '400',
+                          color: active ? '#c2410c' : '#374151',
+                          fontWeight: active ? '600' : '400',
                         }}
                       >
                         {opt.label}
@@ -472,19 +527,6 @@ export default function SignupPage() {
                   );
                 })}
               </View>
-            </View>
-
-            <View style={{ marginBottom: 12 }}>
-              <Text
-                style={{
-                  fontSize: 13,
-                  fontWeight: '500',
-                  color: '#374151',
-                  marginBottom: 4,
-                }}
-              >
-                학년
-              </Text>
               <View
                 style={{
                   flexDirection: 'row',
@@ -492,8 +534,8 @@ export default function SignupPage() {
                   flexWrap: 'wrap',
                 }}
               >
-                {STUDY_YEAR_OPTIONS.map((opt) => {
-                  const isActive = studyYear === opt.value;
+                {studyYearOptions.map((opt) => {
+                  const active = studyYear === opt.value;
                   return (
                     <TouchableOpacity
                       key={opt.value}
@@ -503,15 +545,15 @@ export default function SignupPage() {
                         paddingVertical: 6,
                         borderRadius: 999,
                         borderWidth: 1,
-                        borderColor: isActive ? '#f97316' : '#e5e7eb',
-                        backgroundColor: isActive ? '#fff7ed' : 'white',
+                        borderColor: active ? '#f97316' : '#e5e7eb',
+                        backgroundColor: active ? '#fff7ed' : 'white',
                       }}
                     >
                       <Text
                         style={{
                           fontSize: 12,
-                          color: isActive ? '#c2410c' : '#374151',
-                          fontWeight: isActive ? '600' : '400',
+                          color: active ? '#c2410c' : '#374151',
+                          fontWeight: active ? '600' : '400',
                         }}
                       >
                         {opt.label}
@@ -532,13 +574,13 @@ export default function SignupPage() {
                   marginBottom: 4,
                 }}
               >
-                출생연도
+                {t('signup.yearOfBirth')}
               </Text>
               <TextInput
                 value={yearOfBirth}
                 onChangeText={setYearOfBirth}
                 placeholder="예: 2002"
-                keyboardType="numeric"
+                keyboardType='numeric'
                 style={{
                   borderWidth: 1,
                   borderColor: '#e5e7eb',
@@ -550,7 +592,7 @@ export default function SignupPage() {
               />
             </View>
 
-            {/* 출신 국가 - 선택 리스트 */}
+            {/* 출신 국가 */}
             <View style={{ marginBottom: 12 }}>
               <Text
                 style={{
@@ -560,7 +602,7 @@ export default function SignupPage() {
                   marginBottom: 4,
                 }}
               >
-                출신 국가
+                {t('signup.countryOfOrigin')}
               </Text>
               <TouchableOpacity
                 onPress={() => setShowCountryList((v) => !v)}
@@ -581,7 +623,8 @@ export default function SignupPage() {
                     color: countryOfOrigin ? '#111827' : '#9ca3af',
                   }}
                 >
-                  {countryOfOrigin || '선택해 주세요'}
+                  {countryOfOrigin ||
+                    t('signup.countryPlaceholder')}
                 </Text>
                 <Text style={{ color: '#9ca3af' }}>
                   {showCountryList ? '▲' : '▼'}
@@ -611,14 +654,18 @@ export default function SignupPage() {
                           paddingHorizontal: 12,
                           paddingVertical: 8,
                           backgroundColor:
-                            c === countryOfOrigin ? '#f97316' : 'white',
+                            c === countryOfOrigin
+                              ? '#f97316'
+                              : 'white',
                         }}
                       >
                         <Text
                           style={{
                             fontSize: 14,
                             color:
-                              c === countryOfOrigin ? 'white' : '#111827',
+                              c === countryOfOrigin
+                                ? 'white'
+                                : '#111827',
                           }}
                         >
                           {c}
@@ -640,7 +687,7 @@ export default function SignupPage() {
                   marginBottom: 4,
                 }}
               >
-                성별
+                {t('signup.gender')}
               </Text>
               <View
                 style={{
@@ -649,7 +696,7 @@ export default function SignupPage() {
                   gap: 8,
                 }}
               >
-                {GENDER_OPTIONS.map((opt) => {
+                {genderOptions.map((opt) => {
                   const isActive = gender === opt.value;
                   return (
                     <TouchableOpacity
@@ -660,8 +707,12 @@ export default function SignupPage() {
                         paddingVertical: 6,
                         borderRadius: 999,
                         borderWidth: 1,
-                        borderColor: isActive ? '#f97316' : '#e5e7eb',
-                        backgroundColor: isActive ? '#fff7ed' : 'white',
+                        borderColor: isActive
+                          ? '#f97316'
+                          : '#e5e7eb',
+                        backgroundColor: isActive
+                          ? '#fff7ed'
+                          : 'white',
                       }}
                     >
                       <Text
@@ -712,7 +763,9 @@ export default function SignupPage() {
                 fontWeight: '500',
               }}
             >
-              {loading ? '회원가입 중...' : '회원가입 완료하기'}
+              {loading
+                ? t('signup.signingUp')
+                : t('signup.signupButton')}
             </Text>
           </TouchableOpacity>
 
@@ -725,9 +778,11 @@ export default function SignupPage() {
             }}
           >
             <Text style={{ fontSize: 13, color: '#6b7280' }}>
-              이미 계정이 있으신가요?{' '}
-              <Text style={{ color: '#f97316', fontWeight: '500' }}>
-                로그인
+              {t('signup.alreadyHaveAccountPrefix')}{' '}
+              <Text
+                style={{ color: '#f97316', fontWeight: '500' }}
+              >
+                {t('signup.alreadyHaveAccountAction')}
               </Text>
             </Text>
           </TouchableOpacity>

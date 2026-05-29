@@ -1,0 +1,122 @@
+// src/i18n/strings.js
+
+export const ko = {
+  common: {
+    appName: 'UvA-IN',
+  },
+  tabs: {
+    my: 'MY',
+    events: 'EVENTS',
+    spot: 'SPOT',
+  },
+  login: {
+    title: '로그인',
+    subtitle: 'UvA-IN 멤버 전용 페이지입니다.',
+    emailLabel: '이메일',
+    passwordLabel: '비밀번호',
+    emailPlaceholder: 'student@student.uva.nl',
+    passwordPlaceholder: '••••••••',
+    submit: '로그인',
+    submitting: '로그인 중...',
+    signupLink: '처음이신가요? 회원가입',
+    errorInvalid: '이메일 또는 비밀번호가 올바르지 않습니다.',
+  },
+  export const ko = {
+  // ...
+  signup: {
+    title: 'UvA-IN 회원가입',
+    subtitle: '첫 로그인 전에 간단한 프로필을 작성해 주세요.',
+    emailLabel: '이메일',
+    passwordLabel: '비밀번호',
+    passwordConfirmLabel: '비밀번호 확인',
+    basicInfo: '기본 정보',
+    firstName: '이름',
+    lastName: '성',
+    studentNumber: '학번',
+    major: '전공',
+    degreeAndYear: '학위 과정 / 학년',
+    yearOfBirth: '출생연도',
+    countryOfOrigin: '출신 국가',
+    countryPlaceholder: '선택해 주세요',
+    gender: '성별',
+    genderMale: '남성',
+    genderFemale: '여성',
+    genderNonBinary: '논바이너리',
+    genderPreferNot: '응답하지 않음',
+    signupButton: '회원가입 완료하기',
+    signingUp: '회원가입 중...',
+    alreadyHaveAccountPrefix: '이미 계정이 있으신가요?',
+    alreadyHaveAccountAction: '로그인',
+
+    // 에러 메시지
+    errorMissingAuth: '이메일과 비밀번호를 입력해 주세요.',
+    errorPasswordMismatch: '비밀번호가 일치하지 않습니다.',
+    errorMissingProfile: '기본 프로필 정보를 모두 입력해 주세요.',
+    errorSignupFailed: '회원가입에 실패했습니다. 다시 시도해 주세요.',
+    errorProfileSave:
+      '프로필 저장 중 오류가 발생했습니다. 임원에게 문의해 주세요.',
+    errorUnknown: '알 수 없는 오류가 발생했습니다. 나중에 다시 시도해 주세요.',
+  },
+},
+  member: {
+    header: '내 QR',
+    membershipValid: '유효한 멤버십입니다.',
+    membershipInvalid: '멤버십이 유효하지 않습니다.',
+  },
+};
+
+export const en = {
+  common: {
+    appName: 'UvA-IN',
+  },
+  tabs: {
+    my: 'MY',
+    events: 'EVENTS',
+    spot: 'SPOT',
+  },
+  login: {
+    title: 'Login',
+    subtitle: 'Members-only page for UvA-IN.',
+    emailLabel: 'Email',
+    passwordLabel: 'Password',
+    emailPlaceholder: 'student@student.uva.nl',
+    passwordPlaceholder: '••••••••',
+    submit: 'Log in',
+    submitting: 'Logging in...',
+    signupLink: 'New here? Sign up',
+    errorInvalid: 'Incorrect email or password.',
+  },
+ signup: {
+    title: 'Sign up for UvA-IN',
+    subtitle: 'Please fill in a short profile before your first login.',
+    emailLabel: 'Email',
+    passwordLabel: 'Password',
+    passwordConfirmLabel: 'Confirm password',
+    basicInfo: 'Basic information',
+    firstName: 'First name',
+    lastName: 'Last name',
+    studentNumber: 'Student number',
+    major: 'Major',
+    degreeAndYear: 'Degree / year',
+    yearOfBirth: 'Year of birth',
+    countryOfOrigin: 'Country of origin',
+    countryPlaceholder: 'Select your country',
+    gender: 'Gender',
+    genderMale: 'Male',
+    genderFemale: 'Female',
+    genderNonBinary: 'Non‑binary',
+    genderPreferNot: 'Prefer not to say',
+    signupButton: 'Complete sign up',
+    signingUp: 'Signing up...',
+    alreadyHaveAccountPrefix: 'Already have an account?',
+    alreadyHaveAccountAction: 'Log in',
+
+    errorMissingAuth: 'Please enter your email and password.',
+    errorPasswordMismatch: 'Passwords do not match.',
+    errorMissingProfile: 'Please fill in all required profile fields.',
+    errorSignupFailed: 'Sign up failed. Please try again.',
+    errorProfileSave:
+      'Error while saving your profile. Please contact the committee.',
+    errorUnknown: 'Unknown error. Please try again later.',
+  },
+};

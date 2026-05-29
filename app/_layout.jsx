@@ -5,6 +5,16 @@ import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { supabase } from '../src/lib/supabase';
 import '../global.css';
+import { Stack } from 'expo-router';
+import { I18nProvider } from '@/i18n/LanguageContext';
+
+export default function RootLayout() {
+  return (
+    <I18nProvider>
+      <Stack screenOptions={{ headerShown: false }} />
+    </I18nProvider>
+  );
+}
 
 function AuthGate() {
   const [session, setSession] = useState(undefined);

@@ -6,6 +6,7 @@ import {
 import { useRouter } from 'expo-router';
 import { X } from 'phosphor-react-native';
 import { supabase } from '../src/lib/supabase';
+import { useI18n } from '@/i18n/LanguageContext';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -13,6 +14,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
+const { t, language, setLanguage } = useI18n();
 
   const handleLogin = async () => {
     setLoading(true);
