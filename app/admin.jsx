@@ -67,7 +67,7 @@ function Field({ label, value, onChange, placeholder, multiline, keyboardType, s
     </View>
   );
 }
-
+ 
 // ─── AdminPage Shell ────────────────────────────────────────────────────────
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState('members');
@@ -156,13 +156,27 @@ function MembersTab() {
     last_name: '',
     student_number: '',
     major: '',
+    year: '',                 // ★ 학년/과정 표시 필드 추가
     is_member: true,
-    membership_valid_until: ''
+    membership_valid_until: '',
   });
   const [showPassword, setShowPassword] = useState(false);
 
+  // 간단한 TOTP 시크릿 생성
+  const generateSecret = (length = 32) => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+    let secret = '';
+    for (let i = 0; i < length; i++) {
+      secret += chars[Math.floor(Math.random() * chars.length)];
+    }
+    return secret;
+  };
+
   const fetchMembers = async () => {
-    const { data } = await supabase.from('members').select('*').order('created_at', { ascending: false });
+    const { data } = await supabase
+      .from('members')
+      .select('*')
+      .order('created_at', { ascending: false });
     setMembers(data || []);
     setLoading(false);
   };
@@ -171,20 +185,22 @@ function MembersTab() {
     fetchMembers();
   }, []);
 
-  const generateSecret = () => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-    return Array.from(crypto.getRandomValues(new Uint8Array(20))).map(b => chars[b % 32]).join('');
-  };
-
   const handleAdd = async () => {
-    if (!form.email || !form.password || !form.first_name || !form.last_name || !form.student_number || !form.major) {
+    if (
+      !form.email ||
+      !form.password ||
+      !form.first_name ||
+      !form.last_name ||
+      !form.student_number ||
+      !form.major
+    ) {
       Alert.alert('오류', '모든 필수 항목을 입력해주세요.');
       return;
     }
 
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: form.email,
-      password: form.password
+      password: form.password,
     });
 
     if (authError) {
@@ -192,15 +208,18 @@ function MembersTab() {
       return;
     }
 
+    const totpSecret = generateSecret();
+
     const { error: memberError } = await supabase.from('members').insert({
       user_id: authData.user?.id,
       first_name: form.first_name,
       last_name: form.last_name,
       student_number: form.student_number,
       major: form.major,
+      year: form.year || null,               // ★ year 저장
       is_member: form.is_member,
       membership_valid_until: form.membership_valid_until || null,
-      totp_secret: generateSecret()
+      totp_secret: totpSecret,
     });
 
     if (memberError) {
@@ -208,7 +227,10 @@ function MembersTab() {
       return;
     }
 
-    Alert.alert('완료', `계정 생성 완료!\n이메일: ${form.email}\n비밀번호: ${form.password}`);
+    Alert.alert(
+      '완료',
+      `계정 생성 완료!\n이메일: ${form.email}\n비밀번호: ${form.password}`,
+    );
     setShowForm(false);
     setForm({
       email: '',
@@ -217,21 +239,26 @@ function MembersTab() {
       last_name: '',
       student_number: '',
       major: '',
+      year: '',
       is_member: true,
-      membership_valid_until: ''
+      membership_valid_until: '',
     });
     fetchMembers();
   };
 
   const handleEdit = async () => {
-    const { error } = await supabase.from('members').update({
-      first_name: form.first_name,
-      last_name: form.last_name,
-      student_number: form.student_number,
-      major: form.major,
-      is_member: form.is_member,
-      membership_valid_until: form.membership_valid_until || null
-    }).eq('id', editTarget.id);
+    const { error } = await supabase
+      .from('members')
+      .update({
+        first_name: form.first_name,
+        last_name: form.last_name,
+        student_number: form.student_number,
+        major: form.major,
+        year: form.year || null,             // ★ year 수정 반영
+        is_member: form.is_member,
+        membership_valid_until: form.membership_valid_until || null,
+      })
+      .eq('id', editTarget.id);
 
     if (error) {
       Alert.alert('오류', error.message);
@@ -253,8 +280,8 @@ function MembersTab() {
         onPress: async () => {
           await supabase.from('members').delete().eq('id', id);
           fetchMembers();
-        }
-      }
+        },
+      },
     ]);
   };
 
@@ -267,8 +294,9 @@ function MembersTab() {
       last_name: '',
       student_number: '',
       major: '',
+      year: '',
       is_member: true,
-      membership_valid_until: ''
+      membership_valid_until: '',
     });
     setShowForm(true);
   };
@@ -282,112 +310,472 @@ function MembersTab() {
       last_name: member.last_name || '',
       student_number: member.student_number,
       major: member.major,
+      year: member.year || '',               // ★ 기존 year 값을 폼에 세팅
       is_member: member.is_member,
-      membership_valid_until: member.membership_valid_until || ''
+      membership_valid_until: member.membership_valid_until || '',
     });
     setShowForm(true);
+  };
+
+  // 오늘 기준 +6개월 (학기제 대략치) 버튼
+  const setSemesterFromToday = () => {
+    const now = new Date();
+    now.setMonth(now.getMonth() + 6);
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const dateStr = `${yyyy}-${mm}-${dd}`;
+    setForm((f) => ({
+      ...f,
+      is_member: true,
+      membership_valid_until: dateStr,
+    }));
+  };
+
+  const deactivateMembership = () => {
+    setForm((f) => ({
+      ...f,
+      is_member: false,
+      membership_valid_until: '',
+    }));
   };
 
   const sorted = koreanSort(members, 'last_name');
 
   return (
     <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Text style={{ fontWeight: '600', color: '#111827' }}>멤버 목록 ({members.length}명)</Text>
+      {/* 헤더 */}
+      <View
+        style={{
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
+        <Text style={{ fontWeight: '600', color: '#111827' }}>
+          멤버 목록 ({members.length}명)
+        </Text>
         {!showForm && (
           <TouchableOpacity
             onPress={openAdd}
-            style={{ backgroundColor: '#2563eb', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 4 }}
+            style={{
+              backgroundColor: '#2563eb',
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              borderRadius: 8,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 4,
+            }}
           >
             <Plus size={14} weight="bold" color="white" />
-            <Text style={{ color: 'white', fontSize: 13, fontWeight: '500' }}>멤버 추가</Text>
+            <Text
+              style={{ color: 'white', fontSize: 13, fontWeight: '500' }}
+            >
+              멤버 추가
+            </Text>
           </TouchableOpacity>
         )}
       </View>
 
+      {/* 폼 */}
       {showForm && (
-        <View style={{ backgroundColor: 'white', borderRadius: 12, borderWidth: 1, borderColor: '#e5e7eb', padding: 16, gap: 10 }}>
-          <Text style={{ fontWeight: '600', color: '#111827' }}>{editTarget ? '멤버 수정' : '새 멤버 추가'}</Text>
+        <View
+          style={{
+            backgroundColor: 'white',
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: '#e5e7eb',
+            padding: 16,
+            gap: 10,
+          }}
+        >
+          <Text style={{ fontWeight: '600', color: '#111827' }}>
+            {editTarget ? '멤버 수정' : '새 멤버 추가'}
+          </Text>
+
+          {/* 신규 계정일 때만 이메일/비밀번호 */}
           {!editTarget && (
             <>
-              <Field label="이메일 *" value={form.email} onChange={v => setForm(f => ({ ...f, email: v }))} placeholder="member@example.com" keyboardType="email-address" />
+              <Field
+                label="이메일 *"
+                value={form.email}
+                onChange={(v) =>
+                  setForm((f) => ({ ...f, email: v }))
+                }
+                placeholder="member@example.com"
+                keyboardType="email-address"
+              />
               <View>
-                <Text style={{ fontSize: 12, color: '#6b7280', marginBottom: 4 }}>비밀번호 *</Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 8, paddingHorizontal: 12 }}>
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: '#6b7280',
+                    marginBottom: 4,
+                  }}
+                >
+                  비밀번호 *
+                </Text>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    borderWidth: 1,
+                    borderColor: '#e5e7eb',
+                    borderRadius: 8,
+                    paddingHorizontal: 12,
+                  }}
+                >
                   <TextInput
                     value={form.password}
-                    onChangeText={v => setForm(f => ({ ...f, password: v }))}
+                    onChangeText={(v) =>
+                      setForm((f) => ({ ...f, password: v }))
+                    }
                     placeholder="최소 8자"
                     placeholderTextColor="#9ca3af"
                     secureTextEntry={!showPassword}
-                    style={{ flex: 1, paddingVertical: 8, fontSize: 14, color: '#111827' }}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 8,
+                      fontSize: 14,
+                      color: '#111827',
+                    }}
                   />
-                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                    {showPassword ? <EyeSlash size={16} color="#6b7280" /> : <Eye size={16} color="#6b7280" />}
+                  <TouchableOpacity
+                    onPress={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? (
+                      <EyeSlash size={16} color="#6b7280" />
+                    ) : (
+                      <Eye size={16} color="#6b7280" />
+                    )}
                   </TouchableOpacity>
                 </View>
               </View>
             </>
           )}
+
+          {/* 이름 */}
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <View style={{ flex: 1 }}>
-              <Field label="First Name *" value={form.first_name} onChange={v => setForm(f => ({ ...f, first_name: v }))} placeholder="John" />
+              <Field
+                label="First Name *"
+                value={form.first_name}
+                onChange={(v) =>
+                  setForm((f) => ({ ...f, first_name: v }))
+                }
+                placeholder="John"
+              />
             </View>
             <View style={{ flex: 1 }}>
-              <Field label="Last Name *" value={form.last_name} onChange={v => setForm(f => ({ ...f, last_name: v }))} placeholder="Doe" />
+              <Field
+                label="Last Name *"
+                value={form.last_name}
+                onChange={(v) =>
+                  setForm((f) => ({ ...f, last_name: v }))
+                }
+                placeholder="Doe"
+              />
             </View>
           </View>
+
+          {/* 학번 / 전공 */}
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <View style={{ flex: 1 }}>
-              <Field label="학번 *" value={form.student_number} onChange={v => setForm(f => ({ ...f, student_number: v }))} placeholder="2024001" />
+              <Field
+                label="학번 *"
+                value={form.student_number}
+                onChange={(v) =>
+                  setForm((f) => ({ ...f, student_number: v }))
+                }
+                placeholder="2024001"
+              />
             </View>
             <View style={{ flex: 1 }}>
-              <Field label="전공 *" value={form.major} onChange={v => setForm(f => ({ ...f, major: v }))} placeholder="컴퓨터과학" />
+              <Field
+                label="전공 *"
+                value={form.major}
+                onChange={(v) =>
+                  setForm((f) => ({ ...f, major: v }))
+                }
+                placeholder="컴퓨터과학"
+              />
             </View>
           </View>
-          <Field label="유효기간 (YYYY-MM-DD)" value={form.membership_valid_until} onChange={v => setForm(f => ({ ...f, membership_valid_until: v }))} placeholder="2027-08-31" />
-          <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
+
+          {/* 학년/과정 */}
+          <Field
+            label="학년 / 과정"
+            value={form.year}
+            onChange={(v) =>
+              setForm((f) => ({ ...f, year: v }))
+            }
+            placeholder="예: Bachelor 1, Master 2"
+          />
+
+          {/* 멤버십 상태 / 유효기간 */}
+          <View style={{ marginTop: 4, gap: 6 }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 8,
+              }}
+            >
+              <Text
+                style={{ fontSize: 12, color: '#6b7280' }}
+              >
+                멤버십 상태
+              </Text>
+              <TouchableOpacity
+                onPress={() =>
+                  setForm((f) => ({
+                    ...f,
+                    is_member: !f.is_member,
+                  }))
+                }
+                style={{
+                  paddingHorizontal: 10,
+                  paddingVertical: 4,
+                  borderRadius: 999,
+                  backgroundColor: form.is_member
+                    ? '#dcfce7'
+                    : '#f3f4f6',
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: form.is_member
+                      ? '#15803d'
+                      : '#6b7280',
+                    fontWeight: '500',
+                  }}
+                >
+                  {form.is_member ? '활성' : '비활성'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={{ marginTop: 4 }}>
+              <Field
+                label="유효기간 (YYYY-MM-DD)"
+                value={form.membership_valid_until}
+                onChange={(v) =>
+                  setForm((f) => ({
+                    ...f,
+                    membership_valid_until: v,
+                  }))
+                }
+                placeholder="2025-08-31"
+              />
+              <View
+                style={{
+                  flexDirection: 'row',
+                  gap: 8,
+                  marginTop: 4,
+                }}
+              >
+                <TouchableOpacity
+                  onPress={setSemesterFromToday}
+                  style={{
+                    flex: 1,
+                    backgroundColor: '#2563eb',
+                    borderRadius: 8,
+                    paddingVertical: 6,
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: 'white',
+                      fontSize: 12,
+                      fontWeight: '500',
+                    }}
+                  >
+                    오늘 기준 +1학기
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={deactivateMembership}
+                  style={{
+                    flex: 1,
+                    backgroundColor: '#f3f4f6',
+                    borderRadius: 8,
+                    paddingVertical: 6,
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: '#4b5563',
+                      fontSize: 12,
+                      fontWeight: '500',
+                    }}
+                  >
+                    멤버십 비활성화
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+
+          {/* 저장/취소 */}
+          <View
+            style={{
+              flexDirection: 'row',
+              gap: 8,
+              marginTop: 8,
+            }}
+          >
             <TouchableOpacity
               onPress={editTarget ? handleEdit : handleAdd}
-              style={{ flex: 1, backgroundColor: '#2563eb', borderRadius: 8, paddingVertical: 10, alignItems: 'center' }}
+              style={{
+                flex: 1,
+                backgroundColor: '#2563eb',
+                borderRadius: 8,
+                paddingVertical: 10,
+                alignItems: 'center',
+              }}
             >
-              <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>{editTarget ? '수정 완료' : '멤버 추가'}</Text>
+              <Text
+                style={{
+                  color: 'white',
+                  fontWeight: '600',
+                  fontSize: 14,
+                }}
+              >
+                {editTarget ? '수정 완료' : '멤버 추가'}
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => {
                 setShowForm(false);
                 setEditTarget(null);
               }}
-              style={{ flex: 1, backgroundColor: '#f3f4f6', borderRadius: 8, paddingVertical: 10, alignItems: 'center' }}
+              style={{
+                flex: 1,
+                backgroundColor: '#f3f4f6',
+                borderRadius: 8,
+                paddingVertical: 10,
+                alignItems: 'center',
+              }}
             >
-              <Text style={{ color: '#4b5563', fontSize: 14 }}>취소</Text>
+              <Text
+                style={{ color: '#4b5563', fontSize: 14 }}
+              >
+                취소
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
       )}
 
+      {/* 리스트 */}
       {loading ? (
         <Text style={{ color: '#6b7280' }}>로딩 중...</Text>
       ) : (
-        sorted.map(member => (
-          <View key={member.id} style={{ backgroundColor: 'white', borderRadius: 12, borderWidth: 1, borderColor: '#f3f4f6', padding: 16 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        sorted.map((member) => (
+          <View
+            key={member.id}
+            style={{
+              backgroundColor: 'white',
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: '#f3f4f6',
+              padding: 16,
+            }}
+          >
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+              }}
+            >
               <View style={{ flex: 1 }}>
-                <Text style={{ fontWeight: '600', color: '#111827', fontSize: 14 }}>{member.first_name} {member.last_name}</Text>
-                <Text style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>{member.student_number} · {member.major}</Text>
-                <Text style={{ fontSize: 12, color: '#9ca3af' }}>유효기간: {member.membership_valid_until || '없음'}</Text>
+                <Text
+                  style={{
+                    fontWeight: '600',
+                    color: '#111827',
+                    fontSize: 14,
+                  }}
+                >
+                  {member.first_name} {member.last_name}
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: '#6b7280',
+                    marginTop: 2,
+                  }}
+                >
+                  {member.student_number} · {member.major}
+                  {member.year ? ` · ${member.year}` : ''}
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: '#9ca3af',
+                    marginTop: 2,
+                  }}
+                >
+                  유효기간:{' '}
+                  {member.membership_valid_until || '없음'}
+                </Text>
               </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <View style={{ backgroundColor: member.is_member ? '#dcfce7' : '#f3f4f6', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 }}>
-                  <Text style={{ fontSize: 11, fontWeight: '500', color: member.is_member ? '#15803d' : '#6b7280' }}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 8,
+                }}
+              >
+                <View
+                  style={{
+                    backgroundColor: member.is_member
+                      ? '#dcfce7'
+                      : '#f3f4f6',
+                    borderRadius: 999,
+                    paddingHorizontal: 8,
+                    paddingVertical: 2,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      fontWeight: '500',
+                      color: member.is_member
+                        ? '#15803d'
+                        : '#6b7280',
+                    }}
+                  >
                     {member.is_member ? '활성' : '비활성'}
                   </Text>
                 </View>
-                <TouchableOpacity onPress={() => openEdit(member)}>
-                  <Text style={{ fontSize: 12, color: '#2563eb' }}>수정</Text>
+                <TouchableOpacity
+                  onPress={() => openEdit(member)}
+                >
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: '#2563eb',
+                    }}
+                  >
+                    수정
+                  </Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => handleDelete(member.id)}>
-                  <Text style={{ fontSize: 12, color: '#ef4444' }}>삭제</Text>
+                <TouchableOpacity
+                  onPress={() => handleDelete(member.id)}
+                >
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: '#ef4444',
+                    }}
+                  >
+                    삭제
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>

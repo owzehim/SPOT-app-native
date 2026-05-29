@@ -30,10 +30,10 @@ const DEGREE_OPTIONS = [
 ];
 
 const STUDY_YEAR_OPTIONS = [
-  { value: '1', label: 'Year 1' },
-  { value: '2', label: 'Year 2' },
-  { value: '3', label: 'Year 3' },
-  { value: '4+', label: 'Year 4+' },
+  { value: '1', label: '1' },
+  { value: '2', label: '2' },
+  { value: '3', label: '3' },
+  { value: '4+', label: '4+' },
 ];
 
 // TOTP secret 생성 (간단한 Base32 스타일 문자열)
