@@ -156,11 +156,22 @@ function MembersTab() {
     last_name: '',
     student_number: '',
     major: '',
-    year: '',                 // ★ 학년/과정 표시 필드 추가
+    year: '',
+    year_of_birth: '',
+    country_of_origin: '',
+    gender: 'prefer_not_to_say',
     is_member: true,
     membership_valid_until: '',
   });
   const [showPassword, setShowPassword] = useState(false);
+
+  // 성별 옵션 (회원가입과 동일하게)
+  const GENDER_OPTIONS = [
+    { value: 'male', label: '남성' },
+    { value: 'female', label: '여성' },
+    { value: 'non_binary', label: '논바이너리' },
+    { value: 'prefer_not_to_say', label: '응답하지 않음' },
+  ];
 
   // 간단한 TOTP 시크릿 생성
   const generateSecret = (length = 32) => {
@@ -194,7 +205,7 @@ function MembersTab() {
       !form.student_number ||
       !form.major
     ) {
-      Alert.alert('오류', '모든 필수 항목을 입력해주세요.');
+      Alert.alert('오류', '이메일, 비밀번호, 이름, 학번, 전공은 필수입니다.');
       return;
     }
 
@@ -209,6 +220,9 @@ function MembersTab() {
     }
 
     const totpSecret = generateSecret();
+    const yearOfBirthInt = form.year_of_birth
+      ? parseInt(form.year_of_birth, 10)
+      : null;
 
     const { error: memberError } = await supabase.from('members').insert({
       user_id: authData.user?.id,
@@ -216,7 +230,10 @@ function MembersTab() {
       last_name: form.last_name,
       student_number: form.student_number,
       major: form.major,
-      year: form.year || null,               // ★ year 저장
+      year: form.year || null,
+      year_of_birth: yearOfBirthInt,
+      country_of_origin: form.country_of_origin || null,
+      gender: form.gender || 'prefer_not_to_say',
       is_member: form.is_member,
       membership_valid_until: form.membership_valid_until || null,
       totp_secret: totpSecret,
@@ -232,6 +249,7 @@ function MembersTab() {
       `계정 생성 완료!\n이메일: ${form.email}\n비밀번호: ${form.password}`,
     );
     setShowForm(false);
+    setEditTarget(null);
     setForm({
       email: '',
       password: '',
@@ -240,6 +258,9 @@ function MembersTab() {
       student_number: '',
       major: '',
       year: '',
+      year_of_birth: '',
+      country_of_origin: '',
+      gender: 'prefer_not_to_say',
       is_member: true,
       membership_valid_until: '',
     });
@@ -247,6 +268,10 @@ function MembersTab() {
   };
 
   const handleEdit = async () => {
+    const yearOfBirthInt = form.year_of_birth
+      ? parseInt(form.year_of_birth, 10)
+      : null;
+
     const { error } = await supabase
       .from('members')
       .update({
@@ -254,7 +279,10 @@ function MembersTab() {
         last_name: form.last_name,
         student_number: form.student_number,
         major: form.major,
-        year: form.year || null,             // ★ year 수정 반영
+        year: form.year || null,
+        year_of_birth: yearOfBirthInt,
+        country_of_origin: form.country_of_origin || null,
+        gender: form.gender || 'prefer_not_to_say',
         is_member: form.is_member,
         membership_valid_until: form.membership_valid_until || null,
       })
@@ -295,6 +323,9 @@ function MembersTab() {
       student_number: '',
       major: '',
       year: '',
+      year_of_birth: '',
+      country_of_origin: '',
+      gender: 'prefer_not_to_say',
       is_member: true,
       membership_valid_until: '',
     });
@@ -308,39 +339,25 @@ function MembersTab() {
       password: '',
       first_name: member.first_name || '',
       last_name: member.last_name || '',
-      student_number: member.student_number,
-      major: member.major,
-      year: member.year || '',               // ★ 기존 year 값을 폼에 세팅
-      is_member: member.is_member,
+      student_number: member.student_number || '',
+      major: member.major || '',
+      year: member.year || '',
+      year_of_birth:
+        member.year_of_birth != null ? String(member.year_of_birth) : '',
+      country_of_origin: member.country_of_origin || '',
+      gender: member.gender || 'prefer_not_to_say',
+      is_member: !!member.is_member,
       membership_valid_until: member.membership_valid_until || '',
     });
     setShowForm(true);
   };
 
-  // 오늘 기준 +6개월 (학기제 대략치) 버튼
-  const setSemesterFromToday = () => {
-    const now = new Date();
-    now.setMonth(now.getMonth() + 6);
-    const yyyy = now.getFullYear();
-    const mm = String(now.getMonth() + 1).padStart(2, '0');
-    const dd = String(now.getDate()).padStart(2, '0');
-    const dateStr = `${yyyy}-${mm}-${dd}`;
-    setForm((f) => ({
-      ...f,
-      is_member: true,
-      membership_valid_until: dateStr,
-    }));
-  };
-
-  const deactivateMembership = () => {
-    setForm((f) => ({
-      ...f,
-      is_member: false,
-      membership_valid_until: '',
-    }));
-  };
-
   const sorted = koreanSort(members, 'last_name');
+
+  const genderLabel = (value) => {
+    const opt = GENDER_OPTIONS.find((o) => o.value === value);
+    return opt ? opt.label : '';
+  };
 
   return (
     <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
@@ -498,7 +515,7 @@ function MembersTab() {
                 onChange={(v) =>
                   setForm((f) => ({ ...f, major: v }))
                 }
-                placeholder="컴퓨터과학"
+                placeholder="Economics"
               />
             </View>
           </View>
@@ -513,8 +530,79 @@ function MembersTab() {
             placeholder="예: Bachelor 1, Master 2"
           />
 
+          {/* 출생연도 */}
+          <Field
+            label="출생연도"
+            value={form.year_of_birth}
+            onChange={(v) =>
+              setForm((f) => ({ ...f, year_of_birth: v }))
+            }
+            placeholder="예: 2002"
+            keyboardType="numeric"
+          />
+
+          {/* 출신 국가 */}
+          <Field
+            label="출신 국가"
+            value={form.country_of_origin}
+            onChange={(v) =>
+              setForm((f) => ({ ...f, country_of_origin: v }))
+            }
+            placeholder="예: Korea, Netherlands"
+          />
+
+          {/* 성별 */}
+          <View>
+            <Text
+              style={{
+                fontSize: 12,
+                color: '#6b7280',
+                marginBottom: 4,
+              }}
+            >
+              성별
+            </Text>
+            <View
+              style={{
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+                gap: 8,
+              }}
+            >
+              {GENDER_OPTIONS.map((opt) => {
+                const active = form.gender === opt.value;
+                return (
+                  <TouchableOpacity
+                    key={opt.value}
+                    onPress={() =>
+                      setForm((f) => ({ ...f, gender: opt.value }))
+                    }
+                    style={{
+                      paddingHorizontal: 10,
+                      paddingVertical: 6,
+                      borderRadius: 999,
+                      borderWidth: 1,
+                      borderColor: active ? '#f97316' : '#e5e7eb',
+                      backgroundColor: active ? '#fff7ed' : 'white',
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        color: active ? '#c2410c' : '#374151',
+                        fontWeight: active ? '600' : '400',
+                      }}
+                    >
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
           {/* 멤버십 상태 / 유효기간 */}
-          <View style={{ marginTop: 4, gap: 6 }}>
+          <View style={{ marginTop: 8, gap: 6 }}>
             <View
               style={{
                 flexDirection: 'row',
@@ -557,67 +645,17 @@ function MembersTab() {
               </TouchableOpacity>
             </View>
 
-            <View style={{ marginTop: 4 }}>
-              <Field
-                label="유효기간 (YYYY-MM-DD)"
-                value={form.membership_valid_until}
-                onChange={(v) =>
-                  setForm((f) => ({
-                    ...f,
-                    membership_valid_until: v,
-                  }))
-                }
-                placeholder="2025-08-31"
-              />
-              <View
-                style={{
-                  flexDirection: 'row',
-                  gap: 8,
-                  marginTop: 4,
-                }}
-              >
-                <TouchableOpacity
-                  onPress={setSemesterFromToday}
-                  style={{
-                    flex: 1,
-                    backgroundColor: '#2563eb',
-                    borderRadius: 8,
-                    paddingVertical: 6,
-                    alignItems: 'center',
-                  }}
-                >
-                  <Text
-                    style={{
-                      color: 'white',
-                      fontSize: 12,
-                      fontWeight: '500',
-                    }}
-                  >
-                    오늘 기준 +1학기
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={deactivateMembership}
-                  style={{
-                    flex: 1,
-                    backgroundColor: '#f3f4f6',
-                    borderRadius: 8,
-                    paddingVertical: 6,
-                    alignItems: 'center',
-                  }}
-                >
-                  <Text
-                    style={{
-                      color: '#4b5563',
-                      fontSize: 12,
-                      fontWeight: '500',
-                    }}
-                  >
-                    멤버십 비활성화
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+            <Field
+              label="유효기간 (YYYY-MM-DD)"
+              value={form.membership_valid_until}
+              onChange={(v) =>
+                setForm((f) => ({
+                  ...f,
+                  membership_valid_until: v,
+                }))
+              }
+              placeholder="2025-08-31"
+            />
           </View>
 
           {/* 저장/취소 */}
@@ -712,6 +750,24 @@ function MembersTab() {
                 >
                   {member.student_number} · {member.major}
                   {member.year ? ` · ${member.year}` : ''}
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: '#6b7280',
+                    marginTop: 2,
+                  }}
+                >
+                  {member.year_of_birth
+                    ? `출생연도: ${member.year_of_birth}`
+                    : ''}
+                  {member.country_of_origin
+                    ? (member.year_of_birth ? ' · ' : '') +
+                      member.country_of_origin
+                    : ''}
+                  {member.gender
+                    ? ` · ${genderLabel(member.gender)}`
+                    : ''}
                 </Text>
                 <Text
                   style={{
