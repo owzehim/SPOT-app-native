@@ -4,14 +4,12 @@ import { MapPin } from 'phosphor-react-native'
 import { getMapIconSvg, CATEGORY_ICONS } from '../lib/mapCategories'
 
 const AMSTERDAM = [4.9041, 52.3676]
-const MAPTILER_KEY = process.env.EXPO_PUBLIC_MAPTILER_KEY
+// MapTiler 스타일: 역/버스/공원 위주 커스텀 스타일
+const MAP_STYLE_DAY =
+  'https://api.maptiler.com/maps/019e7070-5813-7575-95ff-c237a9f5c363/style.json?key=wZ6avS4xf2jy9IGm9IJR'
 
 function getMapStyle() {
-  const hour = new Date().getHours()
-  const isNight = hour >= 20 || hour < 7
-  return isNight
-    ? `https://api.maptiler.com/maps/019e33af-3185-79df-9f26-1bc6d896eeee/style.json?key=${MAPTILER_KEY}`
-    : `https://api.maptiler.com/maps/streets-v2/style.json?key=${MAPTILER_KEY}`
+  return MAP_STYLE_DAY
 }
 
 function createMarkerHtml(r, isSelected = false) {
@@ -28,8 +26,10 @@ function createMarkerHtml(r, isSelected = false) {
     : isSponsored
       ? '0 3px 12px rgba(249,115,22,0.4)'
       : '0 2px 6px rgba(0,0,0,0.15)'
+
   const displayName = r.map_label || r.name || ''
   const name = displayName.length > 12 ? displayName.slice(0, 12) + '…' : displayName
+
   const iconColor = isSponsored ? 'white' : '#f97316'
   const iconSvg = getMapIconSvg(r.category, iconColor)
 
@@ -49,7 +49,8 @@ function createMarkerHtml(r, isSelected = false) {
     ';flex-shrink:0;' +
     'transition:transform 0.15s,box-shadow 0.15s;transform:' +
     (isSelected ? 'scale(1.25)' : 'scale(1)') +
-    ';">' +
+    ';' +
+    '">' +
     '<div style="width:' +
     (isSponsored ? 24 : 16) +
     'px;height:' +
@@ -71,6 +72,7 @@ function WebMap({ restaurants, selected, onSelect }) {
   const markersRef = useRef([])
   const initializedRef = useRef(false)
 
+  // 초기 지도 생성
   useEffect(() => {
     if (initializedRef.current || !mapRef.current) return
     initializedRef.current = true
@@ -86,7 +88,7 @@ function WebMap({ restaurants, selected, onSelect }) {
 
       const map = new maplibregl.Map({
         container: mapRef.current,
-        style: getMapStyle(),
+        style: getMapStyle(), // 항상 낮 스타일
         center: AMSTERDAM,
         zoom: 13,
         attributionControl: false,
@@ -94,30 +96,35 @@ function WebMap({ restaurants, selected, onSelect }) {
 
       map.addControl(new maplibregl.NavigationControl(), 'bottom-right')
       map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left')
+
       mapInstanceRef.current = map
 
-      map.on('styleimagemissing', (e) => {
+      map.on('styleimagemissing', () => {
         // Silently ignore missing images
       })
 
       map.on('load', () => {
         const layers = map.getStyle().layers
-        layers.forEach((layer) => {
-          if (layer.type !== 'symbol') return
-          const id = layer.id.toLowerCase()
-          const isTransit =
-            id.includes('transit') ||
-            id.includes('station') ||
-            id.includes('bus') ||
-            id.includes('rail') ||
-            id.includes('metro') ||
-            id.includes('subway') ||
-            id.includes('tram') ||
-            id.includes('stop')
-          if (!isTransit) {
-            map.setLayoutProperty(layer.id, 'visibility', 'none')
-          }
-        })
+layers.forEach((layer) => {
+  if (layer.type !== 'symbol') return
+  const id = layer.id.toLowerCase()
+
+  const isImportantPoi =
+    id.includes('transit') ||
+    id.includes('station') ||
+    id.includes('bus') ||
+    id.includes('rail') ||
+    id.includes('metro') ||
+    id.includes('subway') ||
+    id.includes('tram') ||
+    id.includes('stop') ||
+    id.includes('park') // 공원 아이콘 유지
+
+  if (!isImportantPoi) {
+    map.setLayoutProperty(layer.id, 'visibility', 'none')
+  }
+})
+
         renderMarkers(maplibregl, map, restaurants, selected, onSelect, markersRef)
       })
     })
@@ -131,6 +138,7 @@ function WebMap({ restaurants, selected, onSelect }) {
     }
   }, [])
 
+  // 레스토랑 목록 변경 시 마커 다시 그림
   useEffect(() => {
     const map = mapInstanceRef.current
     if (!map) return
@@ -146,6 +154,7 @@ function WebMap({ restaurants, selected, onSelect }) {
     })
   }, [restaurants])
 
+  // 선택된 장소 변경 시 마커 하이라이트/재생성
   useEffect(() => {
     if (!mapInstanceRef.current) return
 
@@ -155,9 +164,6 @@ function WebMap({ restaurants, selected, onSelect }) {
         if (marker._isSelected === isSelected) return
 
         marker._isSelected = isSelected
-        const size = r.is_sponsored ? 42 : 34
-        const iconWidth = size + 20
-        const iconHeight = size + 28
 
         const el = document.createElement('div')
         el.innerHTML = createMarkerHtml(r, isSelected)
@@ -175,14 +181,19 @@ function WebMap({ restaurants, selected, onSelect }) {
           .addTo(mapInstanceRef.current)
 
         newMarker._isSelected = isSelected
+
         const idx = markersRef.current.findIndex((m) => m.r.id === r.id)
-        if (idx !== -1) markersRef.current[idx] = { r, marker: newMarker, el: wrapper }
+        if (idx !== -1) {
+          markersRef.current[idx] = { r, marker: newMarker, el: wrapper }
+        }
       })
     })
   }, [selected])
 
+  // 선택된 장소로 카메라 이동
   useEffect(() => {
     if (!mapInstanceRef.current || !selected) return
+
     mapInstanceRef.current.flyTo({
       center: [selected.longitude, selected.latitude],
       zoom: 16,
@@ -190,28 +201,7 @@ function WebMap({ restaurants, selected, onSelect }) {
     })
   }, [selected])
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const map = mapInstanceRef.current
-      if (!map) return
-
-      const expected = getMapStyle()
-      const current = map.getStyle()?.sprite || ''
-
-      if (!current.includes(expected.includes('dark') ? 'dark' : 'streets-v2/')) {
-        map.setStyle(expected)
-        map.once('styledata', () => {
-          import('maplibre-gl').then(({ default: maplibregl }) => {
-            markersRef.current.forEach(({ marker }) => marker.remove())
-            markersRef.current = []
-            renderMarkers(maplibregl, map, restaurants, selected, onSelect, markersRef)
-          })
-        })
-      }
-    }, 60 * 1000)
-
-    return () => clearInterval(interval)
-  }, [restaurants, selected])
+  // 🔥 기존의 "1분마다 밤/낮 스타일 재설정" useEffect는 제거함
 
   const locateMe = () => {
     const map = mapInstanceRef.current
@@ -261,9 +251,9 @@ function WebMap({ restaurants, selected, onSelect }) {
 
 function renderMarkers(maplibregl, map, restaurants, selected, onSelect, markersRef) {
   const valid = (restaurants || []).filter((r) => r.latitude && r.longitude)
+
   const newIds = valid.map((r) => r.id).join(',')
   const oldIds = markersRef.current.map((m) => m.r.id).join(',')
-
   if (newIds === oldIds) return
 
   markersRef.current.forEach(({ marker }) => marker.remove())
@@ -271,10 +261,13 @@ function renderMarkers(maplibregl, map, restaurants, selected, onSelect, markers
 
   if (valid.length === 0) return
 
-  const sorted = [...valid].sort((a, b) => (a.is_sponsored ? 1 : 0) - (b.is_sponsored ? 1 : 0))
+  const sorted = [...valid].sort(
+    (a, b) => (a.is_sponsored ? 1 : 0) - (b.is_sponsored ? 1 : 0)
+  )
 
   sorted.forEach((r) => {
     const isSelected = !!(selected && r.id === selected.id)
+
     const el = document.createElement('div')
     el.innerHTML = createMarkerHtml(r, isSelected)
     const wrapper = el.firstChild
@@ -299,12 +292,16 @@ function renderMarkers(maplibregl, map, restaurants, selected, onSelect, markers
   } else if (valid.length > 1) {
     const lngs = valid.map((r) => r.longitude)
     const lats = valid.map((r) => r.latitude)
+
     map.fitBounds(
       [
         [Math.min(...lngs), Math.min(...lats)],
         [Math.max(...lngs), Math.max(...lats)],
       ],
-      { padding: [40, 40], maxZoom: 16 }
+      {
+        padding: [40, 40],
+        maxZoom: 16,
+      }
     )
   }
 }
@@ -405,13 +402,17 @@ function NativeList({ restaurants, selected, onSelect }) {
                 </Text>
 
                 {r.address ? (
-                  <Text style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>
+                  <Text
+                    style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}
+                  >
                     {r.address}
                   </Text>
                 ) : null}
 
                 {r.discount_info ? (
-                  <Text style={{ fontSize: 12, color: '#f97316', marginTop: 4 }}>
+                  <Text
+                    style={{ fontSize: 12, color: '#f97316', marginTop: 4 }}
+                  >
                     {r.discount_info.replace(/<[^>]+>/g, '')}
                   </Text>
                 ) : null}

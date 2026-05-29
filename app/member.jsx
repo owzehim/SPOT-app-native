@@ -1,5 +1,14 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, Linking, Platform, Dimensions } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+  Linking,
+  Platform,
+  Dimensions,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { QrCode, Calendar, MapPin } from 'phosphor-react-native';
 import QRCode from 'react-native-qrcode-svg';
@@ -27,21 +36,27 @@ export default function MemberPage() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
       const { data: memberData } = await supabase
         .from('members')
         .select('*')
         .eq('user_id', user.id)
         .single();
+
       const { data: adminData } = await supabase
         .from('admin_roles')
         .select('id')
         .eq('user_id', user.id)
         .single();
+
       const { data: eventData } = await supabase
         .from('events')
         .select('*')
         .order('event_date', { ascending: true });
+
       const { data: restaurantData } = await supabase
         .from('restaurants')
         .select('*')
@@ -53,6 +68,7 @@ export default function MemberPage() {
       setRestaurants(restaurantData || []);
       setLoading(false);
     };
+
     fetchData();
   }, []);
 
@@ -64,21 +80,56 @@ export default function MemberPage() {
     );
   }
 
-  const qrValue = token ? 'https://uvain-app.vercel.app/verify/' + token + '_' + member?.student_number : '';
-  const isValid = member?.is_member && member?.membership_valid_until && new Date(member.membership_valid_until) >= new Date();
+  const qrValue = token
+    ? 'https://uvain-app.vercel.app/verify/' + token + '_' + member?.student_number
+    : '';
+
+  const isValid =
+    member?.is_member &&
+    member?.membership_valid_until &&
+    new Date(member.membership_valid_until) >= new Date();
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f9fafb' }}>
       {/* Header */}
-      <View style={{ backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#f3f4f6', paddingHorizontal: 16, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Text style={{ fontWeight: 'bold', color: '#111827', fontSize: 16 }}>SPOT</Text>
+      <View
+        style={{
+          backgroundColor: 'white',
+          borderBottomWidth: 1,
+          borderBottomColor: '#f3f4f6',
+          paddingHorizontal: 16,
+          paddingVertical: 12,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+      >
+        <Text style={{ fontWeight: 'bold,', color: '#111827', fontSize: 16 }}>SPOT</Text>
+
         <View style={{ flexDirection: 'row', gap: 8 }}>
           {isAdmin && (
-            <TouchableOpacity onPress={() => router.push('/admin')} style={{ backgroundColor: '#2563eb', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 8 }}>
+            <TouchableOpacity
+              onPress={() => router.push('/admin')}
+              style={{
+                backgroundColor: '#2563eb',
+                paddingHorizontal: 12,
+                paddingVertical: 4,
+                borderRadius: 8,
+              }}
+            >
               <Text style={{ color: 'white', fontSize: 13, fontWeight: '500' }}>관리자</Text>
             </TouchableOpacity>
           )}
-          <TouchableOpacity onPress={() => supabase.auth.signOut()} style={{ paddingHorizontal: 12, paddingVertical: 4, borderRadius: 8, backgroundColor: '#f3f4f6' }}>
+
+          <TouchableOpacity
+            onPress={() => supabase.auth.signOut()}
+            style={{
+              paddingHorizontal: 12,
+              paddingVertical: 4,
+              borderRadius: 8,
+              backgroundColor: '#f3f4f6',
+            }}
+          >
             <Text style={{ color: '#6b7280', fontSize: 13 }}>로그아웃</Text>
           </TouchableOpacity>
         </View>
@@ -94,15 +145,36 @@ export default function MemberPage() {
       </View>
 
       {/* Bottom Tab Bar */}
-      <View style={{ backgroundColor: 'white', borderTopWidth: 1, borderTopColor: '#f3f4f6', flexDirection: 'row' }}>
+      <View
+        style={{
+          backgroundColor: 'white',
+          borderTopWidth: 1,
+          borderTopColor: '#f3f4f6',
+          flexDirection: 'row',
+        }}
+      >
         {[
           { key: 'qr', label: 'MY', Icon: QrCode },
           { key: 'events', label: 'EVENTS', Icon: Calendar },
           { key: 'map', label: 'SPOT', Icon: MapPin },
         ].map(({ key, label, Icon }) => (
-          <TouchableOpacity key={key} onPress={() => setActiveTab(key)} style={{ flex: 1, paddingVertical: 12, alignItems: 'center', gap: 2 }}>
-            <Icon size={20} weight={activeTab === key ? 'fill' : 'regular'} color={activeTab === key ? '#f97316' : '#9ca3af'} />
-            <Text style={{ fontSize: 11, fontWeight: '500', color: activeTab === key ? '#f97316' : '#9ca3af' }}>
+          <TouchableOpacity
+            key={key}
+            onPress={() => setActiveTab(key)}
+            style={{ flex: 1, paddingVertical: 12, alignItems: 'center', gap: 2 }}
+          >
+            <Icon
+              size={20}
+              weight={activeTab === key ? 'fill' : 'regular'}
+              color={activeTab === key ? '#f97316' : '#9ca3af'}
+            />
+            <Text
+              style={{
+                fontSize: 11,
+                fontWeight: '500',
+                color: activeTab === key ? '#f97316' : '#9ca3af',
+              }}
+            >
               {label}
             </Text>
           </TouchableOpacity>
@@ -112,7 +184,8 @@ export default function MemberPage() {
   );
 }
 
-// ─── QR Tab ──────────────────────────────────────────────────────────────────── 
+// ─── QR Tab ────────────────────────────────────────────────────────────────────
+
 function QRTab({ member, isValid, qrValue, secondsLeft }) {
   const router = useRouter();
 
@@ -126,60 +199,176 @@ function QRTab({ member, isValid, qrValue, secondsLeft }) {
   const displaySeconds = secondsLeft ?? 0;
 
   return (
-    <ScrollView contentContainerStyle={{ padding: 16, maxWidth: 448, alignSelf: 'center', width: '100%', gap: 16 }}>
+    <ScrollView
+      contentContainerStyle={{
+        padding: 16,
+        maxWidth: 448,
+        alignSelf: 'center',
+        width: '100%',
+        gap: 16,
+      }}
+    >
       {/* Member info card */}
-      <View style={{ backgroundColor: 'white', borderRadius: 16, borderWidth: 1, borderColor: '#f3f4f6', padding: 20 }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+      <View
+        style={{
+          backgroundColor: 'white',
+          borderRadius: 16,
+          borderWidth: 1,
+          borderColor: '#f3f4f6',
+          padding: 20,
+        }}
+      >
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 12,
+          }}
+        >
           <Text style={{ fontWeight: '600', color: '#111827', fontSize: 15 }}>
             {member?.first_name} {member?.last_name}
           </Text>
-          <View style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, backgroundColor: isValid ? '#dcfce7' : '#fee2e2' }}>
-            <Text style={{ fontSize: 12, fontWeight: '500', color: isValid ? '#15803d' : '#dc2626' }}>
+
+          <View
+            style={{
+              paddingHorizontal: 8,
+              paddingVertical: 4,
+              borderRadius: 999,
+              backgroundColor: isValid ? '#dcfce7' : '#fee2e2',
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 12,
+                fontWeight: '500',
+                color: isValid ? '#15803d' : '#dc2626',
+              }}
+            >
               {isValid ? '✓ 유효' : '✗ 만료'}
             </Text>
           </View>
         </View>
-        <Text style={{ fontSize: 14, color: '#4b5563', marginBottom: 2 }}>학번: {member?.student_number}</Text>
-        <Text style={{ fontSize: 14, color: '#4b5563', marginBottom: 2 }}>전공: {member?.major}</Text>
-        <Text style={{ fontSize: 14, color: '#4b5563' }}>유효기간: {member?.membership_valid_until ?? '없음'}</Text>
+
+        <Text style={{ fontSize: 14, color: '#4b5563', marginBottom: 2 }}>
+          학번: {member?.student_number}
+        </Text>
+        <Text style={{ fontSize: 14, color: '#4b5563', marginBottom: 2 }}>
+          전공: {member?.major}
+        </Text>
+        <Text style={{ fontSize: 14, color: '#4b5563' }}>
+          유효기간: {member?.membership_valid_until ?? '없음'}
+        </Text>
       </View>
 
       {/* QR Code or expired */}
       {isValid ? (
-        <View style={{ backgroundColor: 'white', borderRadius: 16, borderWidth: 1, borderColor: '#f3f4f6', padding: 20, alignItems: 'center' }}>
-          <Text style={{ fontSize: 14, color: '#6b7280', marginBottom: 16 }}>멤버십 QR 코드</Text>
-          <View style={{ padding: 12, borderRadius: 12, borderWidth: 4, borderColor: '#f97316' }}>
+        <View
+          style={{
+            backgroundColor: 'white',
+            borderRadius: 16,
+            borderWidth: 1,
+            borderColor: '#f3f4f6',
+            padding: 20,
+            alignItems: 'center',
+          }}
+        >
+          <Text style={{ fontSize: 14, color: '#6b7280', marginBottom: 16 }}>
+            멤버십 QR 코드
+          </Text>
+
+          <View
+            style={{
+              padding: 12,
+              borderRadius: 12,
+              borderWidth: 4,
+              borderColor: '#f97316',
+            }}
+          >
             {qrValue ? <QRCode value={qrValue} size={200} /> : null}
           </View>
+
           <View style={{ width: '100%', marginTop: 24 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                marginBottom: 8,
+              }}
+            >
               <Text style={{ fontSize: 14, color: '#4b5563' }}>QR 갱신까지</Text>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151' }}>{displaySeconds}초</Text>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151' }}>
+                {displaySeconds}초
+              </Text>
             </View>
-            <View style={{ width: '100%', height: 8, backgroundColor: '#e5e7eb', borderRadius: 999, overflow: 'hidden' }}>
-              <View style={{ height: '100%', backgroundColor: '#f97316', borderRadius: 999, width: `${progressPercent}%` }} />
+
+            <View
+              style={{
+                width: '100%',
+                height: 8,
+                backgroundColor: '#e5e7eb',
+                borderRadius: 999,
+                overflow: 'hidden',
+              }}
+            >
+              <View
+                style={{
+                  height: '100%',
+                  backgroundColor: '#f97316',
+                  borderRadius: 999,
+                  width: `${progressPercent}%`,
+                }}
+              />
             </View>
           </View>
-          <Text style={{ fontSize: 12, color: '#9ca3af', marginTop: 16 }}>15초마다 자동 갱신됩니다</Text>
+
+          <Text style={{ fontSize: 12, color: '#9ca3af', marginTop: 16 }}>
+            15초마다 자동 갱신됩니다
+          </Text>
         </View>
       ) : (
-        <View style={{ backgroundColor: '#fef2f2', borderRadius: 16, borderWidth: 1, borderColor: '#fee2e2', padding: 20, alignItems: 'center' }}>
-          <Text style={{ color: '#dc2626', fontWeight: '500' }}>멤버십이 유효하지 않습니다</Text>
-          <Text style={{ fontSize: 14, color: '#f87171', marginTop: 4 }}>임원에게 문의하세요</Text>
+        <View
+          style={{
+            backgroundColor: '#fef2f2',
+            borderRadius: 16,
+            borderWidth: 1,
+            borderColor: '#fee2e2',
+            padding: 20,
+            alignItems: 'center',
+          }}
+        >
+          <Text style={{ color: '#dc2626', fontWeight: '500' }}>
+            멤버십이 유효하지 않습니다
+          </Text>
+          <Text style={{ fontSize: 14, color: '#f87171', marginTop: 4 }}>
+            임원에게 문의하세요
+          </Text>
         </View>
       )}
 
       {/* Scan button */}
       {isValid && (
-        <TouchableOpacity onPress={() => router.push('/scan')} style={{ backgroundColor: '#f97316', borderRadius: 16, paddingVertical: 14, alignItems: 'center' }}>
-          <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>🎟 매장 QR 스캔하기</Text>
+        <TouchableOpacity
+          onPress={() => router.push('/scan')}
+          style={{
+            backgroundColor: '#f97316',
+            borderRadius: 16,
+            paddingVertical: 14,
+            alignItems: 'center',
+          }}
+        >
+          <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>
+            🎟 매장 QR 스캔하기
+          </Text>
         </TouchableOpacity>
       )}
     </ScrollView>
   );
 }
 
-// ─── Events Tab ───────────────────────────────────────────────────────────────── 
+// ─── Events Tab ─────────────────────────────────────────────────────────────────
+// (중간 EventsTab 코드는 구조만 유지했고, 변경 없음 — 원본 그대로 복사)
+
 function EventsTab({ events }) {
   const [expandedId, setExpandedId] = useState(null);
   const [slideIndexes, setSlideIndexes] = useState({});
@@ -187,25 +376,47 @@ function EventsTab({ events }) {
   const scrollRefs = useRef({});
 
   const setSlide = (eventId, idx) => {
-  setSlideIndexes((prev) => ({ ...prev, [eventId]: idx }));
-
-  if (scrollRefs.current[eventId]) {
-    const MAX_SLIDE_WIDTH = 384;
-    const slideWidth = Math.min(SCREEN_WIDTH - 64, MAX_SLIDE_WIDTH);
-
-    scrollRefs.current[eventId].scrollTo({
-      x: idx * slideWidth,
-      animated: true,
-    });
-  }
-};
+    setSlideIndexes((prev) => ({ ...prev, [eventId]: idx }));
+    if (scrollRefs.current[eventId]) {
+      const MAX_SLIDE_WIDTH = 384;
+      const slideWidth = Math.min(SCREEN_WIDTH - 64, MAX_SLIDE_WIDTH);
+      scrollRefs.current[eventId].scrollTo({
+        x: idx * slideWidth,
+        animated: true,
+      });
+    }
+  };
 
   const addToCalendar = (ev) => {
     const start = new Date(ev.event_date);
     const end = new Date(start.getTime() + 2 * 60 * 60 * 1000);
+
     const pad = (n) => String(n).padStart(2, '0');
-    const fmt = (d) => d.getUTCFullYear() + '' + pad(d.getUTCMonth() + 1) + '' + pad(d.getUTCDate()) + 'T' + pad(d.getUTCHours()) + '' + pad(d.getUTCMinutes()) + '00Z';
-    const ics = 'BEGIN:VCALENDAR\\nVERSION:2.0\\nBEGIN:VEVENT\\nDTSTART:' + fmt(start) + '\\nDTEND:' + fmt(end) + '\\nSUMMARY:' + ev.title + '\\nLOCATION:' + (ev.location || '') + '\\nDESCRIPTION:' + (ev.description || '') + '\\nEND:VEVENT\\nEND:VCALENDAR';
+    const fmt = (d) =>
+      d.getUTCFullYear() +
+      '' +
+      pad(d.getUTCMonth() + 1) +
+      '' +
+      pad(d.getUTCDate()) +
+      'T' +
+      pad(d.getUTCHours()) +
+      '' +
+      pad(d.getUTCMinutes()) +
+      '00Z';
+
+    const ics =
+      'BEGIN:VCALENDAR\\nVERSION:2.0\\nBEGIN:VEVENT\\nDTSTART:' +
+      fmt(start) +
+      '\\nDTEND:' +
+      fmt(end) +
+      '\\nSUMMARY:' +
+      ev.title +
+      '\\nLOCATION:' +
+      (ev.location || '') +
+      '\\nDESCRIPTION:' +
+      (ev.description || '') +
+      '\\nEND:VEVENT\\nEND:VCALENDAR';
+
     const encoded = encodeURIComponent(ics);
     Linking.openURL('data:text/calendar,' + encoded);
   };
@@ -213,11 +424,10 @@ function EventsTab({ events }) {
   const renderEvent = (ev) => {
     const isExpanded = expandedId === ev.id;
     const imgs = ev.image_urls || [];
-const currentSlide = slideIndexes[ev.id] || 0;
+    const currentSlide = slideIndexes[ev.id] || 0;
 
-// 카드 maxWidth=448, 카드 안쪽 패딩 등을 고려해서 슬라이드 최대 폭을 제한
-const MAX_SLIDE_WIDTH = 384; // 448 카드 폭 - 좌우 여백 대략치
-const slideWidth = Math.min(SCREEN_WIDTH - 64, MAX_SLIDE_WIDTH);
+    const MAX_SLIDE_WIDTH = 384;
+    const slideWidth = Math.min(SCREEN_WIDTH - 64, MAX_SLIDE_WIDTH);
 
     return (
       <View
@@ -231,14 +441,36 @@ const slideWidth = Math.min(SCREEN_WIDTH - 64, MAX_SLIDE_WIDTH);
           marginBottom: 12,
         }}
       >
-        <TouchableOpacity onPress={() => setExpandedId(isExpanded ? null : ev.id)} activeOpacity={0.7}>
+        <TouchableOpacity
+          onPress={() => setExpandedId(isExpanded ? null : ev.id)}
+          activeOpacity={0.7}
+        >
           <View style={{ padding: 20 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <Text style={{ fontWeight: '600', color: '#111827', flex: 1 }}>{ev.title}</Text>
-              <Text style={{ color: '#9ca3af', fontSize: 13 }}>{isExpanded ? '▲' : '▼'}</Text>
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 8,
+              }}
+            >
+              <Text style={{ fontWeight: '600', color: '#111827', flex: 1 }}>
+                {ev.title}
+              </Text>
+              <Text style={{ color: '#9ca3af', fontSize: 13 }}>
+                {isExpanded ? '▲' : '▼'}
+              </Text>
             </View>
+
             {ev.event_date ? (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 6,
+                  marginBottom: 4,
+                }}
+              >
                 <Calendar size={14} weight="fill" color="#f97316" />
                 <Text style={{ fontSize: 13, color: '#f97316' }}>
                   {new Date(ev.event_date).toLocaleString('ko-KR', {
@@ -252,10 +484,19 @@ const slideWidth = Math.min(SCREEN_WIDTH - 64, MAX_SLIDE_WIDTH);
                 </Text>
               </View>
             ) : null}
+
             {ev.location ? (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
+              >
                 <MapPin size={14} weight="fill" color="#6b7280" />
-                <Text style={{ fontSize: 13, color: '#6b7280' }}>{ev.location}</Text>
+                <Text style={{ fontSize: 13, color: '#6b7280' }}>
+                  {ev.location}
+                </Text>
               </View>
             ) : null}
           </View>
@@ -283,7 +524,9 @@ const slideWidth = Math.min(SCREEN_WIDTH - 64, MAX_SLIDE_WIDTH);
                     scrollEventThrottle={16}
                     showsHorizontalScrollIndicator={false}
                     onMomentumScrollEnd={(e) => {
-                      const idx = Math.round(e.nativeEvent.contentOffset.x / slideWidth);
+                      const idx = Math.round(
+                        e.nativeEvent.contentOffset.x / slideWidth
+                      );
                       setSlideIndexes((prev) => ({ ...prev, [ev.id]: idx }));
                     }}
                     style={{ width: slideWidth }}
@@ -302,10 +545,7 @@ const slideWidth = Math.min(SCREEN_WIDTH - 64, MAX_SLIDE_WIDTH);
                         >
                           <Image
                             source={{ uri: url }}
-                            style={{
-                              width: '100%',
-                              height: '100%',
-                            }}
+                            style={{ width: '100%', height: '100%' }}
                             resizeMode="contain"
                           />
                         </View>
@@ -313,7 +553,7 @@ const slideWidth = Math.min(SCREEN_WIDTH - 64, MAX_SLIDE_WIDTH);
                     </View>
                   </ScrollView>
 
-                  {/* Left arrow button (PC) */}
+                  {/* Left arrow (PC) */}
                   {imgs.length > 1 && currentSlide > 0 ? (
                     <TouchableOpacity
                       onPress={() => setSlide(ev.id, currentSlide - 1)}
@@ -323,7 +563,7 @@ const slideWidth = Math.min(SCREEN_WIDTH - 64, MAX_SLIDE_WIDTH);
                         top: '50%',
                         transform: [{ translateY: -20 }],
                         zIndex: 10,
-                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                        backgroundColor: 'rgba(0,0,0,0.5)',
                         borderRadius: 20,
                         width: 40,
                         height: 40,
@@ -331,11 +571,19 @@ const slideWidth = Math.min(SCREEN_WIDTH - 64, MAX_SLIDE_WIDTH);
                         alignItems: 'center',
                       }}
                     >
-                      <Text style={{ color: 'white', fontSize: 20, fontWeight: 'bold' }}>‹</Text>
+                      <Text
+                        style={{
+                          color: 'white',
+                          fontSize: 20,
+                          fontWeight: 'bold',
+                        }}
+                      >
+                        ‹
+                      </Text>
                     </TouchableOpacity>
                   ) : null}
 
-                  {/* Right arrow button (PC) */}
+                  {/* Right arrow (PC) */}
                   {imgs.length > 1 && currentSlide < imgs.length - 1 ? (
                     <TouchableOpacity
                       onPress={() => setSlide(ev.id, currentSlide + 1)}
@@ -345,7 +593,7 @@ const slideWidth = Math.min(SCREEN_WIDTH - 64, MAX_SLIDE_WIDTH);
                         top: '50%',
                         transform: [{ translateY: -20 }],
                         zIndex: 10,
-                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                        backgroundColor: 'rgba(0,0,0,0.5)',
                         borderRadius: 20,
                         width: 40,
                         height: 40,
@@ -353,7 +601,15 @@ const slideWidth = Math.min(SCREEN_WIDTH - 64, MAX_SLIDE_WIDTH);
                         alignItems: 'center',
                       }}
                     >
-                      <Text style={{ color: 'white', fontSize: 20, fontWeight: 'bold' }}>›</Text>
+                      <Text
+                        style={{
+                          color: 'white',
+                          fontSize: 20,
+                          fontWeight: 'bold',
+                        }}
+                      >
+                        ›
+                      </Text>
                     </TouchableOpacity>
                   ) : null}
 
@@ -371,13 +627,20 @@ const slideWidth = Math.min(SCREEN_WIDTH - 64, MAX_SLIDE_WIDTH);
                       }}
                     >
                       {imgs.map((_, i) => (
-                        <TouchableOpacity key={i} onPress={() => setSlide(ev.id, i)} activeOpacity={0.7}>
+                        <TouchableOpacity
+                          key={i}
+                          onPress={() => setSlide(ev.id, i)}
+                          activeOpacity={0.7}
+                        >
                           <View
                             style={{
                               width: i === currentSlide ? 10 : 6,
                               height: i === currentSlide ? 10 : 6,
                               borderRadius: 999,
-                              backgroundColor: i === currentSlide ? '#f97316' : 'rgba(255,255,255,0.6)',
+                              backgroundColor:
+                                i === currentSlide
+                                  ? '#f97316'
+                                  : 'rgba(255,255,255,0.6)',
                               borderWidth: i === currentSlide ? 0 : 1,
                               borderColor: 'rgba(255,255,255,0.8)',
                             }}
@@ -392,10 +655,18 @@ const slideWidth = Math.min(SCREEN_WIDTH - 64, MAX_SLIDE_WIDTH);
 
             <View style={{ paddingHorizontal: 20, paddingBottom: 20 }}>
               {ev.description ? (
-                <Text style={{ fontSize: 14, color: '#4b5563', lineHeight: 20, marginBottom: 12 }}>
+                <Text
+                  style={{
+                    fontSize: 14,
+                    color: '#4b5563',
+                    lineHeight: 20,
+                    marginBottom: 12,
+                  }}
+                >
                   {ev.description}
                 </Text>
               ) : null}
+
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 {ev.event_date ? (
                   <TouchableOpacity
@@ -412,9 +683,12 @@ const slideWidth = Math.min(SCREEN_WIDTH - 64, MAX_SLIDE_WIDTH);
                     }}
                   >
                     <Calendar size={14} weight="fill" color="#374151" />
-                    <Text style={{ fontSize: 12, color: '#374151' }}>캘린더에 추가</Text>
+                    <Text style={{ fontSize: 12, color: '#374151' }}>
+                      캘린더에 추가
+                    </Text>
                   </TouchableOpacity>
                 ) : null}
+
                 {ev.instagram_url ? (
                   <TouchableOpacity
                     onPress={() => Linking.openURL(ev.instagram_url)}
@@ -427,7 +701,9 @@ const slideWidth = Math.min(SCREEN_WIDTH - 64, MAX_SLIDE_WIDTH);
                       justifyContent: 'center',
                     }}
                   >
-                    <Text style={{ fontSize: 12, color: 'white' }}>Instagram 에서 열기</Text>
+                    <Text style={{ fontSize: 12, color: 'white' }}>
+                      Instagram 에서 열기
+                    </Text>
                   </TouchableOpacity>
                 ) : null}
               </View>
@@ -439,13 +715,19 @@ const slideWidth = Math.min(SCREEN_WIDTH - 64, MAX_SLIDE_WIDTH);
   };
 
   const now = new Date();
-  const upcomingEvents = events.filter((ev) => ev.event_date && new Date(ev.event_date) >= now);
-  const pastEvents = events.filter((ev) => ev.event_date && new Date(ev.event_date) < now);
+  const upcomingEvents = events.filter(
+    (ev) => ev.event_date && new Date(ev.event_date) >= now
+  );
+  const pastEvents = events.filter(
+    (ev) => ev.event_date && new Date(ev.event_date) < now
+  );
 
   const groupEventsByMonth = (eventList) => {
     const grouped = {};
     eventList.forEach((ev) => {
-      const label = ev.event_date ? `${new Date(ev.event_date).getMonth() + 1}월` : '날짜 미정';
+      const label = ev.event_date
+        ? `${new Date(ev.event_date).getMonth() + 1}월`
+        : '날짜 미정';
       if (!grouped[label]) {
         grouped[label] = [];
       }
@@ -463,7 +745,14 @@ const slideWidth = Math.min(SCREEN_WIDTH - 64, MAX_SLIDE_WIDTH);
         width: '100%',
       }}
     >
-      <Text style={{ fontWeight: '600', color: '#111827', fontSize: 15, marginBottom: 16 }}>
+      <Text
+        style={{
+          fontWeight: '600',
+          color: '#111827',
+          fontSize: 15,
+          marginBottom: 16,
+        }}
+      >
         EVENTS
       </Text>
 
@@ -479,35 +768,42 @@ const slideWidth = Math.min(SCREEN_WIDTH - 64, MAX_SLIDE_WIDTH);
           }}
         >
           <Text style={{ fontSize: 24, marginBottom: 8 }}>📅</Text>
-          <Text style={{ color: '#6b7280', fontSize: 14 }}>예정된 이벤트가 없어요</Text>
+          <Text style={{ color: '#6b7280', fontSize: 14 }}>
+            예정된 이벤트가 없어요
+          </Text>
         </View>
       ) : (
         <View>
           {upcomingEvents.length > 0 ? (
             <View>
-              {Object.entries(groupEventsByMonth(upcomingEvents)).map(([month, monthEvents]) => (
-                <View key={month}>
-                  <Text
-                    style={{
-                      fontSize: 12,
-                      fontWeight: '600',
-                      color: '#9ca3af',
-                      textTransform: 'uppercase',
-                      paddingTop: 8,
-                      marginBottom: 8,
-                    }}
-                  >
-                    {month}
-                  </Text>
-                  {monthEvents.map((ev) => renderEvent(ev))}
-                </View>
-              ))}
+              {Object.entries(groupEventsByMonth(upcomingEvents)).map(
+                ([month, monthEvents]) => (
+                  <View key={month}>
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        fontWeight: '600',
+                        color: '#9ca3af',
+                        textTransform: 'uppercase',
+                        paddingTop: 8,
+                        marginBottom: 8,
+                      }}
+                    >
+                      {month}
+                    </Text>
+                    {monthEvents.map((ev) => renderEvent(ev))}
+                  </View>
+                )
+              )}
             </View>
           ) : null}
 
           {pastEvents.length > 0 ? (
             <View style={{ marginTop: 24 }}>
-              <TouchableOpacity onPress={() => setPastEventsExpanded(!pastEventsExpanded)} activeOpacity={0.7}>
+              <TouchableOpacity
+                onPress={() => setPastEventsExpanded(!pastEventsExpanded)}
+                activeOpacity={0.7}
+              >
                 <View
                   style={{
                     flexDirection: 'row',
@@ -517,8 +813,18 @@ const slideWidth = Math.min(SCREEN_WIDTH - 64, MAX_SLIDE_WIDTH);
                     borderRadius: 8,
                   }}
                 >
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <Text style={{ fontWeight: '600', color: '#4b5563' }}>지난 이벤트</Text>
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 8,
+                    }}
+                  >
+                    <Text
+                      style={{ fontWeight: '600', color: '#4b5563' }}
+                    >
+                      지난 이벤트
+                    </Text>
                     <View
                       style={{
                         backgroundColor: '#e5e7eb',
@@ -527,7 +833,13 @@ const slideWidth = Math.min(SCREEN_WIDTH - 64, MAX_SLIDE_WIDTH);
                         paddingVertical: 2,
                       }}
                     >
-                      <Text style={{ fontSize: 12, color: '#374151', fontWeight: '500' }}>
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          color: '#374151',
+                          fontWeight: '500',
+                        }}
+                      >
                         {pastEvents.length}
                       </Text>
                     </View>
@@ -540,23 +852,25 @@ const slideWidth = Math.min(SCREEN_WIDTH - 64, MAX_SLIDE_WIDTH);
 
               {pastEventsExpanded ? (
                 <View style={{ marginTop: 12 }}>
-                  {Object.entries(groupEventsByMonth(pastEvents)).map(([month, monthEvents]) => (
-                    <View key={month}>
-                      <Text
-                        style={{
-                          fontSize: 12,
-                          fontWeight: '600',
-                          color: '#9ca3af',
-                          textTransform: 'uppercase',
-                          paddingTop: 8,
-                          marginBottom: 8,
-                        }}
-                      >
-                        {month}
-                      </Text>
-                      {monthEvents.map((ev) => renderEvent(ev))}
-                    </View>
-                  ))}
+                  {Object.entries(groupEventsByMonth(pastEvents)).map(
+                    ([month, monthEvents]) => (
+                      <View key={month}>
+                        <Text
+                          style={{
+                            fontSize: 12,
+                            fontWeight: '600',
+                            color: '#9ca3af',
+                            textTransform: 'uppercase',
+                            paddingTop: 8,
+                            marginBottom: 8,
+                          }}
+                        >
+                          {month}
+                        </Text>
+                        {monthEvents.map((ev) => renderEvent(ev))}
+                      </View>
+                    )
+                  )}
                 </View>
               ) : null}
             </View>
@@ -567,10 +881,12 @@ const slideWidth = Math.min(SCREEN_WIDTH - 64, MAX_SLIDE_WIDTH);
   );
 }
 
-// ─── Map Tab ──────────────────────────────────────────────────────────────────── 
+// ─── Map Tab ────────────────────────────────────────────────────────────────────
+
 function MapTab({ restaurants }) {
   const [selected, setSelected] = useState(null);
   const [activeCategory, setActiveCategory] = useState('전체');
+
   const filtered = useMemo(
     () =>
       activeCategory === '전체'
@@ -581,6 +897,7 @@ function MapTab({ restaurants }) {
 
   return (
     <View style={{ flex: 1 }}>
+      {/* 카테고리 필터 바 (SPOT 지도 상단) */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -588,18 +905,20 @@ function MapTab({ restaurants }) {
           backgroundColor: 'white',
           borderBottomWidth: 1,
           borderBottomColor: '#f3f4f6',
-          maxHeight: 52,
+          maxHeight: 48, // PublicPage와 맞춰서 살짝 더 낮게
         }}
         contentContainerStyle={{
           paddingHorizontal: 12,
-          paddingVertical: 8,
+          paddingVertical: 6,
           gap: 8,
         }}
       >
         {MAP_CATEGORIES.map((cat) => {
           const isActive = activeCategory === cat;
           const iconSvg = CATEGORY_ICONS[cat];
-          const iconColor = isActive ? 'white' : '#4b5563';
+
+          // PWA 스타일: 비활성은 오렌지 아이콘, 활성은 흰색 아이콘
+          const iconColor = isActive ? 'white' : '#f97316';
           const coloredIcon = iconSvg.replace(
             'fill="currentColor"',
             `fill="${iconColor}"`
@@ -613,37 +932,41 @@ function MapTab({ restaurants }) {
                 setSelected(null);
               }}
               style={{
-                paddingHorizontal: 10,
-                paddingVertical: 4,
+                paddingHorizontal: 12, // 길이 증가
+                paddingVertical: 1, // 높이 감소
                 borderRadius: 999,
-                backgroundColor: isActive ? '#f97316' : '#f3f4f6',
+                backgroundColor: isActive ? '#f97316' : '#F8F9F6',
                 flexDirection: 'row',
                 alignItems: 'center',
                 gap: 6,
               }}
             >
-              <View style={{ width: 14, height: 14 }}>
+              <View style={{ width: 16, height: 16 }}>
                 <SvgXml xml={coloredIcon} width="100%" height="100%" />
               </View>
               <Text
-                style={{
-                  fontSize: 12,
-                  fontWeight: '500',
-                  color: isActive ? 'white' : '#4b5563',
-                }}
-              >
-                {cat}
-              </Text>
+  style={{
+    fontSize: 11,
+    lineHeight: 11,
+    fontWeight: '500',
+    color: isActive ? 'white' : '#4b5563',
+    marginTop: -1,
+  }}
+>
+  {cat}
+</Text>
             </TouchableOpacity>
           );
         })}
       </ScrollView>
 
       <View style={{ flex: 1, position: 'relative' }}>
-        <MapViewComponent restaurants={filtered} selected={selected} onSelect={setSelected} />
-        {selected && (
-          <SpotCard selected={selected} onClose={() => setSelected(null)} />
-        )}
+        <MapViewComponent
+          restaurants={filtered}
+          selected={selected}
+          onSelect={setSelected}
+        />
+        {selected && <SpotCard selected={selected} onClose={() => setSelected(null)} />}
       </View>
     </View>
   );
