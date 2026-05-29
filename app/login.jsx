@@ -116,6 +116,19 @@ export default function LoginPage() {
             </Text>
           </TouchableOpacity>
 
+{/* Signup link */}
+<TouchableOpacity
+  onPress={() => router.replace('/signup')}
+  style={{ marginTop: 12, alignItems: 'center' }}
+>
+  <Text style={{ fontSize: 13, color: '#6b7280' }}>
+    처음이신가요?{' '}
+    <Text style={{ color: '#f97316', fontWeight: '500' }}>
+      회원가입
+    </Text>
+  </Text>
+</TouchableOpacity>
+
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
