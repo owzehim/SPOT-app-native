@@ -84,6 +84,14 @@ export const ko = {
     openInstagram: 'Instagram 에서 열기',
     monthUnknown: '날짜 미정',
   },
+    settings: {
+    title: '설정',
+    appLanguage: '앱 언어',
+    language: '언어',
+    korean: '한국어',
+    english: 'English',
+    logout: '로그아웃',
+  },
 };
 
 // 영어 번역
@@ -169,5 +177,13 @@ export const en = {
     addToCalendar: 'Add to calendar',
     openInstagram: 'Open in Instagram',
     monthUnknown: 'Date TBA',
+  },
+ settings: {
+    title: 'Settings',
+    appLanguage: 'App language',
+    language: 'Language',
+    korean: 'Korean',
+    english: 'English',
+    logout: 'Log out',
   },
 };

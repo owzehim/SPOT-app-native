@@ -10,7 +10,12 @@ import {
   Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { QrCode, Calendar, MapPin } from 'phosphor-react-native';
+import {
+  QrCode,
+  Calendar,
+  MapPin,
+  Gear, // 🔧 설정 아이콘 추가
+} from 'phosphor-react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
@@ -18,11 +23,7 @@ import { SvgXml } from 'react-native-svg';
 import { supabase } from '../src/lib/supabase';
 import { useQRToken } from '../src/hooks/useQRToken';
 import { broadcastQRExpiry } from '../src/lib/qrSync';
-import {
-  MAP_CATEGORIES,
-  CATEGORY_ICONS,
-  CATEGORY_LABELS,
-} from '../src/lib/mapCategories';
+import { MAP_CATEGORIES, CATEGORY_ICONS } from '../src/lib/mapCategories';
 import MapViewComponent from '../src/components/MapView';
 import { SpotCard } from '../src/components/SpotCard';
 import { useI18n } from '@/i18n/LanguageContext';
@@ -36,6 +37,8 @@ export default function MemberPage() {
   const [activeTab, setActiveTab] = useState('qr');
   const [events, setEvents] = useState([]);
   const [restaurants, setRestaurants] = useState([]);
+  const [showSettings, setShowSettings] = useState(false); // ⚙️ 설정 화면 토글
+
   const { token, secondsLeft } = useQRToken(member?.totp_secret);
   const router = useRouter();
   const { t } = useI18n();
@@ -77,6 +80,13 @@ export default function MemberPage() {
 
     fetchData();
   }, []);
+
+  // 탭이 QR가 아니면 설정 화면 닫기
+  useEffect(() => {
+    if (activeTab !== 'qr') {
+      setShowSettings(false);
+    }
+  }, [activeTab]);
 
   if (loading) {
     return (
@@ -131,7 +141,7 @@ export default function MemberPage() {
           {t('member.header')}
         </Text>
 
-        <View style={{ flexDirection: 'row', gap: 8 }}>
+        <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
           {isAdmin && (
             <TouchableOpacity
               onPress={() => router.push('/admin')}
@@ -154,31 +164,32 @@ export default function MemberPage() {
             </TouchableOpacity>
           )}
 
+          {/* 기존 로그아웃 → 설정 아이콘으로 변경 */}
           <TouchableOpacity
-            onPress={() => supabase.auth.signOut()}
+            onPress={() => setShowSettings((v) => !v)}
             style={{
-              paddingHorizontal: 12,
-              paddingVertical: 4,
-              borderRadius: 8,
+              padding: 6,
+              borderRadius: 999,
               backgroundColor: '#f3f4f6',
             }}
           >
-            <Text style={{ color: '#6b7280', fontSize: 13 }}>
-              {t('member.logout')}
-            </Text>
+            <Gear size={18} weight="bold" color="#4b5563" />
           </TouchableOpacity>
         </View>
       </View>
 
       {/* Content */}
       <View style={{ flex: 1 }}>
-        {activeTab === 'qr' && (
+        {activeTab === 'qr' && !showSettings && (
           <QRTab
             member={member}
             isValid={isValid}
             qrValue={qrValue}
             secondsLeft={secondsLeft}
           />
+        )}
+        {activeTab === 'qr' && showSettings && (
+          <SettingsView onClose={() => setShowSettings(false)} />
         )}
         {activeTab === 'events' && <EventsTab events={events} />}
         {activeTab === 'map' && <MapTab restaurants={restaurants} />}
@@ -454,6 +465,170 @@ function QRTab({ member, isValid, qrValue, secondsLeft }) {
           </Text>
         </TouchableOpacity>
       )}
+    </ScrollView>
+  );
+}
+
+// ─── Settings View (MY 탭 안 설정 화면) ────────────────────────────────
+
+function SettingsView({ onClose }) {
+  const { t, language, setLanguage } = useI18n();
+
+  const LANG_OPTIONS = [
+    { value: 'ko', label: t('settings.korean') },
+    { value: 'en', label: t('settings.english') },
+  ];
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    // AuthGate가 세션 변화를 감지해서 /public로 보내줌
+  };
+
+  return (
+    <ScrollView
+      contentContainerStyle={{
+        padding: 16,
+        maxWidth: 448,
+        alignSelf: 'center',
+        width: '100%',
+        gap: 12,
+      }}
+    >
+      <View
+        style={{
+          backgroundColor: 'white',
+          borderRadius: 16,
+          borderWidth: 1,
+          borderColor: '#f3f4f6',
+          padding: 16,
+          gap: 12,
+        }}
+      >
+        {/* 제목 + 닫기 */}
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 4,
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 16,
+              fontWeight: '600',
+              color: '#111827',
+            }}
+          >
+            {t('settings.title')}
+          </Text>
+          <TouchableOpacity
+            onPress={onClose}
+            style={{
+              paddingHorizontal: 8,
+              paddingVertical: 4,
+            }}
+          >
+            <Text style={{ fontSize: 12, color: '#6b7280' }}>
+              닫기
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* 언어 섹션 */}
+        <View
+          style={{
+            borderTopWidth: 1,
+            borderTopColor: '#f3f4f6',
+            paddingTop: 12,
+            gap: 8,
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 13,
+              fontWeight: '600',
+              color: '#4b5563',
+            }}
+          >
+            {t('settings.appLanguage')}
+          </Text>
+
+          {LANG_OPTIONS.map((opt) => {
+            const active = language === opt.value;
+            return (
+              <TouchableOpacity
+                key={opt.value}
+                onPress={() => setLanguage(opt.value)}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  paddingVertical: 10,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 14,
+                    color: active ? '#111827' : '#6b7280',
+                  }}
+                >
+                  {opt.label}
+                </Text>
+                <View
+                  style={{
+                    width: 18,
+                    height: 18,
+                    borderRadius: 999,
+                    borderWidth: 1,
+                    borderColor: active ? '#f97316' : '#d1d5db',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {active ? (
+                    <View
+                      style={{
+                        width: 10,
+                        height: 10,
+                        borderRadius: 999,
+                        backgroundColor: '#f97316',
+                      }}
+                    />
+                  ) : null}
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {/* 구분선 */}
+        <View
+          style={{
+            borderTopWidth: 1,
+            borderTopColor: '#f3f4f6',
+            marginTop: 8,
+          }}
+        />
+
+        {/* 로그아웃 (리스트 맨 아래) */}
+        <TouchableOpacity
+          onPress={handleLogout}
+          style={{
+            paddingVertical: 12,
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 14,
+              fontWeight: '500',
+              color: '#ef4444',
+            }}
+          >
+            {t('settings.logout')}
+          </Text>
+        </TouchableOpacity>
+      </View>
     </ScrollView>
   );
 }
@@ -1114,17 +1289,18 @@ function MapTab({ restaurants }) {
                   height="100%"
                 />
               </View>
+              {/* 한국어 카테고리 키 그대로 표시 */}
               <Text
-  style={{
-    fontSize: 11,
-    lineHeight: 11,
-    fontWeight: '500',
-    color: isActive ? 'white' : '#4b5563',
-    marginTop: -1,
-  }}
->
-  {CATEGORY_LABELS[cat] ?? cat}
-</Text>
+                style={{
+                  fontSize: 11,
+                  lineHeight: 11,
+                  fontWeight: '500',
+                  color: isActive ? 'white' : '#4b5563',
+                  marginTop: -1,
+                }}
+              >
+                {cat}
+              </Text>
             </TouchableOpacity>
           );
         })}
