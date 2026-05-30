@@ -13,7 +13,22 @@ export const MAP_CATEGORIES = [
   '여가',
   '쇼핑',
   '기타',
-]
+];
+
+export const CATEGORY_LABELS = {
+  전체: 'All',
+  맛집: 'Restaurant',
+  카페: 'Cafe',
+  마트: 'Groceries',
+  스터디: 'Study',
+  학교: 'Campus',
+  의료: 'Medical',
+  운동: 'Sports',
+  '미용/뷰티': 'Beauty',
+  여가: 'Leisure',
+  쇼핑: 'Shopping',
+  기타: 'Other',
+};
 
 // Phosphor icon SVG strings - properly sized for inline rendering
 const PHOSPHOR_ICONS = {

@@ -4,6 +4,8 @@
 export const ko = {
   common: {
     appName: 'UvA-IN',
+    loading: '로딩 중...',
+    none: '없음',
   },
   tabs: {
     my: 'MY',
@@ -47,7 +49,6 @@ export const ko = {
     alreadyHaveAccountPrefix: '이미 계정이 있으신가요?',
     alreadyHaveAccountAction: '로그인',
 
-    // 에러 메시지
     errorMissingAuth: '이메일과 비밀번호를 입력해 주세요.',
     errorPasswordMismatch: '비밀번호가 일치하지 않습니다.',
     errorMissingProfile: '기본 프로필 정보를 모두 입력해 주세요.',
@@ -60,6 +61,28 @@ export const ko = {
     header: '내 QR',
     membershipValid: '유효한 멤버십입니다.',
     membershipInvalid: '멤버십이 유효하지 않습니다.',
+    studentNumber: '학번',
+    major: '전공',
+    validUntil: '유효기간',
+    validShort: '✓ 유효',
+    expiredShort: '✗ 만료',
+    qrTitle: '멤버십 QR 코드',
+    qrRefreshLabel: 'QR 갱신까지',
+    qrSecondsSuffix: '초',
+    qrAutoRefreshNote: '15초마다 자동 갱신됩니다',
+    qrScanButton: '🎟 매장 QR 스캔하기',
+    membershipInvalidTitle: '멤버십이 유효하지 않습니다',
+    contactAdmin: '임원에게 문의하세요',
+    adminButton: '관리자',
+    logout: '로그아웃',
+  },
+  events: {
+    title: 'EVENTS',
+    noUpcoming: '예정된 이벤트가 없어요',
+    pastEvents: '지난 이벤트',
+    addToCalendar: '캘린더에 추가',
+    openInstagram: 'Instagram 에서 열기',
+    monthUnknown: '날짜 미정',
   },
 };
 
@@ -67,6 +90,8 @@ export const ko = {
 export const en = {
   common: {
     appName: 'UvA-IN',
+    loading: 'Loading...',
+    none: 'None',
   },
   tabs: {
     my: 'MY',
@@ -122,5 +147,27 @@ export const en = {
     header: 'My QR',
     membershipValid: 'Your membership is valid.',
     membershipInvalid: 'Your membership is not valid.',
+    studentNumber: 'Student number',
+    major: 'Major',
+    validUntil: 'Valid until',
+    validShort: '✓ Active',
+    expiredShort: '✗ Expired',
+    qrTitle: 'Membership QR code',
+    qrRefreshLabel: 'Time until refresh',
+    qrSecondsSuffix: 's',
+    qrAutoRefreshNote: 'Refreshed automatically every 15 seconds',
+    qrScanButton: '🎟 Scan partner QR',
+    membershipInvalidTitle: 'Your membership is not valid',
+    contactAdmin: 'Please contact the committee',
+    adminButton: 'Admin',
+    logout: 'Log out',
+  },
+  events: {
+    title: 'EVENTS',
+    noUpcoming: 'No upcoming events',
+    pastEvents: 'Past events',
+    addToCalendar: 'Add to calendar',
+    openInstagram: 'Open in Instagram',
+    monthUnknown: 'Date TBA',
   },
 };

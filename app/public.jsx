@@ -3,7 +3,11 @@ import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MapPin, Lock, ForkKnife, Calendar, Users } from 'phosphor-react-native';
 import { supabase } from '../src/lib/supabase';
-import { MAP_CATEGORIES, CATEGORY_ICONS } from '../src/lib/mapCategories';
+import {
+  MAP_CATEGORIES,
+  CATEGORY_ICONS,
+  CATEGORY_LABELS,
+} from '../src/lib/mapCategories';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapViewComponent from '../src/components/MapView';
 import { SpotCard } from '../src/components/SpotCard';
@@ -169,13 +173,13 @@ function PublicMapTab({ restaurants }) {
               <Text
   style={{
     fontSize: 11,
-    lineHeight: 11,      // 폰트 크기와 동일하게
+    lineHeight: 11,
     fontWeight: '500',
     color: isActive ? 'white' : '#4b5563',
-    marginTop: -1,       // 한 픽셀 정도 위로 올려서 중앙에 보이게
+    marginTop: -1,
   }}
 >
-  {cat}
+  {CATEGORY_LABELS[cat] ?? cat}
 </Text>
             </TouchableOpacity>
           );
