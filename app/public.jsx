@@ -1,16 +1,19 @@
+// app/public.jsx
 import { useState, useEffect, useMemo } from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MapPin, Lock, ForkKnife, Calendar, Users } from 'phosphor-react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
 import { supabase } from '../src/lib/supabase';
 import {
   MAP_CATEGORIES,
   CATEGORY_ICONS,
   CATEGORY_LABELS,
 } from '../src/lib/mapCategories';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import MapViewComponent from '../src/components/MapView';
 import { SpotCard } from '../src/components/SpotCard';
+import { useI18n } from '@/i18n/LanguageContext';
 
 export default function PublicPage() {
   const [activeTab, setActiveTab] = useState('map');
@@ -45,19 +48,37 @@ export default function PublicPage() {
           justifyContent: 'space-between',
         }}
       >
-        <Text style={{ fontWeight: 'bold', color: '#111827', fontSize: 16 }}>UvA-IN</Text>
+        <Text
+          style={{ fontWeight: 'bold', color: '#111827', fontSize: 16 }}
+        >
+          UvA-IN
+        </Text>
 
         <TouchableOpacity
           onPress={() => router.push('/login')}
-          style={{ paddingHorizontal: 12, paddingVertical: 4, borderRadius: 8 }}
+          style={{
+            paddingHorizontal: 12,
+            paddingVertical: 4,
+            borderRadius: 8,
+          }}
         >
-          <Text style={{ color: '#f97316', fontSize: 13, fontWeight: '500' }}>로그인</Text>
+          <Text
+            style={{
+              color: '#f97316',
+              fontSize: 13,
+              fontWeight: '500',
+            }}
+          >
+            로그인
+          </Text>
         </TouchableOpacity>
       </View>
 
       {/* Content */}
       <View style={{ flex: 1 }}>
-        {activeTab === 'map' && <PublicMapTab restaurants={restaurants} />}
+        {activeTab === 'map' && (
+          <PublicMapTab restaurants={restaurants} />
+        )}
         {activeTab === 'membership' && <MembershipTab />}
       </View>
 
@@ -77,7 +98,12 @@ export default function PublicPage() {
           <TouchableOpacity
             key={key}
             onPress={() => setActiveTab(key)}
-            style={{ flex: 1, paddingVertical: 12, alignItems: 'center', gap: 2 }}
+            style={{
+              flex: 1,
+              paddingVertical: 12,
+              alignItems: 'center',
+              gap: 2,
+            }}
           >
             <Icon
               size={20}
@@ -103,13 +129,14 @@ export default function PublicPage() {
 function PublicMapTab({ restaurants }) {
   const [selected, setSelected] = useState(null);
   const [activeCategory, setActiveCategory] = useState('전체');
+  const { language } = useI18n();
 
   const filtered = useMemo(
     () =>
       activeCategory === '전체'
         ? restaurants
         : restaurants.filter((r) => r.category === activeCategory),
-    [restaurants, activeCategory]
+    [restaurants, activeCategory],
   );
 
   return (
@@ -122,11 +149,11 @@ function PublicMapTab({ restaurants }) {
           backgroundColor: 'white',
           borderBottomWidth: 1,
           borderBottomColor: '#f3f4f6',
-          maxHeight: 48, // 살짝 낮게
+          maxHeight: 48,
         }}
         contentContainerStyle={{
           paddingHorizontal: 12,
-          paddingVertical: 6, // 전체 높이도 조금 줄임
+          paddingVertical: 6,
           gap: 8,
         }}
       >
@@ -136,7 +163,15 @@ function PublicMapTab({ restaurants }) {
 
           // PWA 스타일: 비활성은 오렌지 아이콘, 활성은 흰색 아이콘
           const iconColor = isActive ? 'white' : '#f97316';
-          const coloredIcon = iconSvg.replace('fill="currentColor"', `fill="${iconColor}"`);
+          const coloredIcon = iconSvg.replace(
+            'fill="currentColor"',
+            `fill="${iconColor}"`,
+          );
+
+          const label =
+            language === 'ko'
+              ? cat
+              : CATEGORY_LABELS[cat] ?? cat;
 
           return (
             <TouchableOpacity
@@ -146,8 +181,8 @@ function PublicMapTab({ restaurants }) {
                 setSelected(null);
               }}
               style={{
-                paddingHorizontal: 12, // 조금 더 길게
-                paddingVertical: 1, // 조금 더 얇게
+                paddingHorizontal: 12,
+                paddingVertical: 1,
                 borderRadius: 999,
                 backgroundColor: isActive ? '#f97316' : '#FAFAF8',
                 flexDirection: 'row',
@@ -157,6 +192,7 @@ function PublicMapTab({ restaurants }) {
             >
               {/* Icon */}
               <View style={{ width: 16, height: 16 }}>
+                {/* web-only: raw HTML SVG */}
                 <div
                   dangerouslySetInnerHTML={{ __html: coloredIcon }}
                   style={{
@@ -171,24 +207,33 @@ function PublicMapTab({ restaurants }) {
 
               {/* Label */}
               <Text
-  style={{
-    fontSize: 11,
-    lineHeight: 11,
-    fontWeight: '500',
-    color: isActive ? 'white' : '#4b5563',
-    marginTop: -1,
-  }}
->
-  {CATEGORY_LABELS[cat] ?? cat}
-</Text>
+                style={{
+                  fontSize: 11,
+                  lineHeight: 11,
+                  fontWeight: '500',
+                  color: isActive ? 'white' : '#4b5563',
+                  marginTop: -1,
+                }}
+              >
+                {label}
+              </Text>
             </TouchableOpacity>
           );
         })}
       </ScrollView>
 
       <View style={{ flex: 1, position: 'relative' }}>
-        <MapViewComponent restaurants={filtered} selected={selected} onSelect={setSelected} />
-        {selected && <SpotCard selected={selected} onClose={() => setSelected(null)} />}
+        <MapViewComponent
+          restaurants={filtered}
+          selected={selected}
+          onSelect={setSelected}
+        />
+        {selected && (
+          <SpotCard
+            selected={selected}
+            onClose={() => setSelected(null)}
+          />
+        )}
       </View>
     </View>
   );
@@ -208,7 +253,9 @@ function MembershipTab() {
     >
       <View style={{ width: '100%', maxWidth: 384 }}>
         {/* Title */}
-        <View style={{ alignItems: 'center', marginBottom: 32 }}>
+        <View
+          style={{ alignItems: 'center', marginBottom: 32 }}
+        >
           <Lock size={48} weight="fill" color="#f97316" />
           <Text
             style={{
@@ -280,7 +327,11 @@ function MembershipTab() {
                 >
                   {title}
                 </Text>
-                <Text style={{ fontSize: 12, color: '#6b7280' }}>{desc}</Text>
+                <Text
+                  style={{ fontSize: 12, color: '#6b7280' }}
+                >
+                  {desc}
+                </Text>
               </View>
             </View>
           ))}
@@ -296,7 +347,15 @@ function MembershipTab() {
             alignItems: 'center',
           }}
         >
-          <Text style={{ color: 'white', fontWeight: '600', fontSize: 15 }}>로그인</Text>
+          <Text
+            style={{
+              color: 'white',
+              fontWeight: '600',
+              fontSize: 15,
+            }}
+          >
+            로그인
+          </Text>
         </TouchableOpacity>
       </View>
     </ScrollView>

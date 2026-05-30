@@ -10,12 +10,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import {
-  QrCode,
-  Calendar,
-  MapPin,
-  Gear, // 🔧 설정 아이콘 추가
-} from 'phosphor-react-native';
+import { QrCode, Calendar, MapPin, Gear } from 'phosphor-react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
@@ -23,7 +18,11 @@ import { SvgXml } from 'react-native-svg';
 import { supabase } from '../src/lib/supabase';
 import { useQRToken } from '../src/hooks/useQRToken';
 import { broadcastQRExpiry } from '../src/lib/qrSync';
-import { MAP_CATEGORIES, CATEGORY_ICONS } from '../src/lib/mapCategories';
+import {
+  MAP_CATEGORIES,
+  CATEGORY_ICONS,
+  CATEGORY_LABELS,
+} from '../src/lib/mapCategories';
 import MapViewComponent from '../src/components/MapView';
 import { SpotCard } from '../src/components/SpotCard';
 import { useI18n } from '@/i18n/LanguageContext';
@@ -37,7 +36,7 @@ export default function MemberPage() {
   const [activeTab, setActiveTab] = useState('qr');
   const [events, setEvents] = useState([]);
   const [restaurants, setRestaurants] = useState([]);
-  const [showSettings, setShowSettings] = useState(false); // ⚙️ 설정 화면 토글
+  const [showSettings, setShowSettings] = useState(false);
 
   const { token, secondsLeft } = useQRToken(member?.totp_secret);
   const router = useRouter();
@@ -80,13 +79,6 @@ export default function MemberPage() {
 
     fetchData();
   }, []);
-
-  // 탭이 QR가 아니면 설정 화면 닫기
-  useEffect(() => {
-    if (activeTab !== 'qr') {
-      setShowSettings(false);
-    }
-  }, [activeTab]);
 
   if (loading) {
     return (
@@ -138,7 +130,7 @@ export default function MemberPage() {
             fontSize: 16,
           }}
         >
-          {t('member.header')}
+          {t('common.appName')}
         </Text>
 
         <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
@@ -164,7 +156,7 @@ export default function MemberPage() {
             </TouchableOpacity>
           )}
 
-          {/* 기존 로그아웃 → 설정 아이콘으로 변경 */}
+          {/* 설정 아이콘 (모든 탭에서 동작) */}
           <TouchableOpacity
             onPress={() => setShowSettings((v) => !v)}
             style={{
@@ -178,21 +170,22 @@ export default function MemberPage() {
         </View>
       </View>
 
-      {/* Content */}
+      {/* Content: 설정이 우선, 아니면 탭 내용 */}
       <View style={{ flex: 1 }}>
-        {activeTab === 'qr' && !showSettings && (
+        {showSettings ? (
+          <SettingsView onClose={() => setShowSettings(false)} />
+        ) : activeTab === 'qr' ? (
           <QRTab
             member={member}
             isValid={isValid}
             qrValue={qrValue}
             secondsLeft={secondsLeft}
           />
+        ) : activeTab === 'events' ? (
+          <EventsTab events={events} />
+        ) : (
+          <MapTab restaurants={restaurants} />
         )}
-        {activeTab === 'qr' && showSettings && (
-          <SettingsView onClose={() => setShowSettings(false)} />
-        )}
-        {activeTab === 'events' && <EventsTab events={events} />}
-        {activeTab === 'map' && <MapTab restaurants={restaurants} />}
       </View>
 
       {/* Bottom Tab Bar */}
@@ -304,9 +297,7 @@ function QRTab({ member, isValid, qrValue, secondsLeft }) {
                 color: isValid ? '#15803d' : '#dc2626',
               }}
             >
-              {isValid
-                ? t('member.validShort')
-                : t('member.expiredShort')}
+              {isValid ? t('member.validShort') : t('member.expiredShort')}
             </Text>
           </View>
         </View>
@@ -469,7 +460,7 @@ function QRTab({ member, isValid, qrValue, secondsLeft }) {
   );
 }
 
-// ─── Settings View (MY 탭 안 설정 화면) ────────────────────────────────
+// ─── Settings View ─────────────────────────────────────────────────────────
 
 function SettingsView({ onClose }) {
   const { t, language, setLanguage } = useI18n();
@@ -481,7 +472,7 @@ function SettingsView({ onClose }) {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    // AuthGate가 세션 변화를 감지해서 /public로 보내줌
+    // AuthGate가 세션 변화를 보고 /public 등으로 보내줌
   };
 
   return (
@@ -611,7 +602,7 @@ function SettingsView({ onClose }) {
           }}
         />
 
-        {/* 로그아웃 (리스트 맨 아래) */}
+        {/* 로그아웃 */}
         <TouchableOpacity
           onPress={handleLogout}
           style={{
@@ -633,7 +624,7 @@ function SettingsView({ onClose }) {
   );
 }
 
-// ─── Events Tab ─────────────────────────────────────────────────────────────
+// ─── Events Tab ────────────────────────────────────────────────────────────
 
 function EventsTab({ events }) {
   const [expandedId, setExpandedId] = useState(null);
@@ -1228,6 +1219,7 @@ function EventsTab({ events }) {
 function MapTab({ restaurants }) {
   const [selected, setSelected] = useState(null);
   const [activeCategory, setActiveCategory] = useState('전체');
+  const { language } = useI18n();
 
   const filtered = useMemo(
     () =>
@@ -1265,6 +1257,11 @@ function MapTab({ restaurants }) {
             `fill="${iconColor}"`,
           );
 
+          const label =
+            language === 'ko'
+              ? cat
+              : CATEGORY_LABELS[cat] ?? cat;
+
           return (
             <TouchableOpacity
               key={cat}
@@ -1289,7 +1286,6 @@ function MapTab({ restaurants }) {
                   height="100%"
                 />
               </View>
-              {/* 한국어 카테고리 키 그대로 표시 */}
               <Text
                 style={{
                   fontSize: 11,
@@ -1299,7 +1295,7 @@ function MapTab({ restaurants }) {
                   marginTop: -1,
                 }}
               >
-                {cat}
+                {label}
               </Text>
             </TouchableOpacity>
           );

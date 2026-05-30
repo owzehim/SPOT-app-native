@@ -92,6 +92,9 @@ export const ko = {
     english: 'English',
     logout: '로그아웃',
   },
+    map: {
+    openInGoogleMaps: 'Google Maps에서 열기',
+  },
 };
 
 // 영어 번역
@@ -185,5 +188,8 @@ export const en = {
     korean: 'Korean',
     english: 'English',
     logout: 'Log out',
+  },
+map: {
+    openInGoogleMaps: 'Open in Google Maps',
   },
 };
