@@ -9,31 +9,45 @@ export default function Root({ children }: PropsWithChildren) {
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
 
-        {/* 구버전 PWA와 동일한 viewport 설정 */}
+        {/* 구버전 PWA와 맞추기 */}
         <meta
           name="viewport"
           content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
         />
-
-        {/* 브라우저/OS 테마 색 */}
         <meta name="theme-color" content="#2563eb" />
 
-        {/* iOS PWA 관련 설정 */}
+        {/* iOS: 홈 화면 웹앱으로 인식시키는 태그 */}
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="SPOT" />
+        <meta name="apple-mobile-web-app-title" content="UvA-IN" />
 
-        {/* 홈 화면 아이콘 (빌드 결과 보고 필요하면 경로 조정) */}
-        <link rel="apple-touch-icon" href="/assets/icon-192.png" />
+        {/* 홈 화면 아이콘 (경로는 웹 빌드 기준) */}
+        <link rel="apple-touch-icon" href="/assets/icon.png" />
 
-        {/* Expo가 app.json 기반으로 생성하는 PWA manifest */}
+        {/* 우리가 직접 만드는 PWA manifest */}
         <link rel="manifest" href="/manifest.json" />
 
-        <title>SPOT</title>
+        <title>UvA-IN</title>
 
-        {/* React Native ScrollView 기본 스타일 리셋 */}
         <ScrollViewStyleReset />
+
+        {/* 아주 얇은 서비스워커 등록 (캐싱 거의 안 함) */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function () {
+                  navigator.serviceWorker
+                    .register('/sw.js')
+                    .catch(function () {
+                      // ignore
+                    });
+                });
+              }
+            `,
+          }}
+        />
       </head>
       <body>{children}</body>
     </html>
